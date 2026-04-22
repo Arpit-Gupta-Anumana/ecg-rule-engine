@@ -1,0 +1,56 @@
+disease: PediatricLowVoltageQRS
+manual_source: "12SL Physicians Guide v24, §3.7.3.5 p.89"
+description: >
+  Pediatric low-voltage QRS. Manual: "Low voltage QRS requires (a) QRS deflection
+  of all limb leads < 500 µV or (b) QRS deflection < 1000 µV in all limb leads
+  and < 1500 µV in all precordial leads." Test skipped if WPW or QRS > 120 ms.
+manual_departure_notes: |
+  Peak-to-peak "QRS deflection" per lead is operationalized as R_mV + S_mV
+  (S stored as magnitude), matching the adult low-voltage rule in this repo.
+
+  (a) 500 µV = 0.50 mV; 1000 µV = 1.0 mV; 1500 µV = 1.5 mV (manual).
+
+  WPW skip is encoded as wpw_flag < 1; QRS > 120 ms skip as QRS_ms <= 120 in
+  the clause (inverse of skip condition).
+exclusions: []
+sex_specific: false
+variants:
+  - name: LowV_all_limb_ped
+    manual_page: 89
+    description: "R + S < 0.50 mV in every limb lead; QRS <= 120 ms; not WPW; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS > 120 ms (manual)", expr: "QRS_ms", op: "<=", value: 120 }
+        - { kind: threshold, expr: "R_I_mV   + S_I_mV",   op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_II_mV  + S_II_mV",  op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_III_mV + S_III_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVR_mV + S_aVR_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVL_mV + S_aVL_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVF_mV + S_aVF_mV", op: "<", value: 0.5 }
+
+  - name: LowV_limb_and_precordial_ped
+    manual_page: 89
+    description: >
+      R + S < 1.0 mV in all limb leads AND R + S < 1.5 mV in all precordial leads;
+      QRS <= 120 ms; not WPW; age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS > 120 ms (manual)", expr: "QRS_ms", op: "<=", value: 120 }
+        - { kind: threshold, expr: "R_I_mV   + S_I_mV",   op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_II_mV  + S_II_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_III_mV + S_III_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVR_mV + S_aVR_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVL_mV + S_aVL_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVF_mV + S_aVF_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V1_mV  + S_V1_mV",  op: "<", value: 1.5 }
+        - { kind: threshold, expr: "R_V2_mV  + S_V2_mV",  op: "<", value: 1.5 }
+        - { kind: threshold, expr: "R_V3_mV  + S_V3_mV",  op: "<", value: 1.5 }
+        - { kind: threshold, expr: "R_V4_mV  + S_V4_mV",  op: "<", value: 1.5 }
+        - { kind: threshold, expr: "R_V5_mV  + S_V5_mV",  op: "<", value: 1.5 }
+        - { kind: threshold, expr: "R_V6_mV  + S_V6_mV",  op: "<", value: 1.5 }

@@ -1,0 +1,128 @@
+disease: BiventricularHypertrophy
+manual_source: "12SL Physicians Guide v24, §3.7.2.9.3 p.66"
+description: >
+  Biventricular hypertrophy (acronyms BIVH, 2ST, QRSW). The manual states that
+  all biventricular hypertrophy tests are skipped if RBBB is stated, and that if
+  both RVH and LVH are true, biventricular hypertrophy is stated.
+manual_departure_notes: |
+  LIMITATION: The engine evaluates each disease file independently; it does not
+  read prior “RVH” / “LVH” statement outputs. This variant therefore requires
+  simultaneous satisfaction of (a) the same RVH morphologic point-score used
+  elsewhere for non-RBBB “RVH” (3 of 4 items: V1 R, V5/V6 S, rightward axis,
+  RAE proxy or S1-S2-S3) and (b) any one of the standard LVH voltage/product
+  criteria encoded in lvh.yaml (R_aVL, Sokolow-Lyon, Cornell product, or
+  Romhilt-Estes ≥ 5). This is a deliberate morphologic+voltage proxy for
+  “both RVH and LVH are true,” not a literal duplicate of GE’s internal
+  two-statement logic. WPW / paced states that nullify LVH or RVH elsewhere are
+  not re-listed here because the manual excerpt only mandates an RBBB skip.
+exclusions: []
+sex_specific: true
+variants:
+  - name: BIVH_RVH3of4_and_any_LVH
+    manual_page: 66
+    description: >
+      RBBB skip gate; RVH non-RBBB pathway at 3/4 points; plus any LVH criterion
+      (Sokolow-Lyon with age gate, Cornell product with age gate, R_aVL, or
+      Romhilt-Estes score ≥ 5).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Manual skip if RBBB stated"
+          expr: "rbbb_flag"
+          op: "<"
+          value: 1
+        - kind: point_score
+          note: "RVH non-RBBB 3-of-4 (same item set as rvh.yaml RVH_voltage_axis)"
+          threshold_positive: 3
+          items:
+            - points: 1
+              note: "R or R' in V1 ≥ 0.7 mV"
+              when:
+                kind: threshold
+                expr: "R_V1_mV"
+                op: ">="
+                value: 0.7
+            - points: 1
+              note: "S in V5 or V6 ≥ 0.7 mV"
+              when:
+                kind: threshold
+                expr: "max(S_V5_mV, S_V6_mV)"
+                op: ">="
+                value: 0.7
+            - points: 1
+              note: "Rightward QRS axis ≥ 100 deg"
+              when:
+                kind: threshold
+                expr: "QRS_axis_deg"
+                op: ">="
+                value: 100
+            - points: 1
+              note: "RAE proxy (P_V1 ≥ 0.25 mV) OR S1S2S3 pattern"
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "P_V1_mV", op: ">=", value: 0.25 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "S_I_mV", op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_II_mV", op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }
+        - kind: any_of
+          note: "Any LVH criterion (lvh.yaml variants)"
+          clauses:
+            - kind: threshold
+              note: "R in aVL > 1.1 mV"
+              expr: "R_aVL_mV"
+              op: ">"
+              value: 1.1
+            - kind: all_of
+              note: "Sokolow-Lyon voltage > 3.5 mV and age ≥ 30"
+              clauses:
+                - kind: threshold
+                  expr: "max(S_V1_mV, S_V2_mV) + max(R_V5_mV, R_V6_mV)"
+                  op: ">"
+                  value: 3.5
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 30
+            - kind: all_of
+              note: "Cornell product > 244 mV·ms and age ≥ 30"
+              clauses:
+                - kind: threshold
+                  expr: "(R_aVL_mV + S_V3_mV + 0.6 * sex_F_flag) * QRS_ms"
+                  op: ">"
+                  value: 244
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 30
+            - kind: point_score
+              note: "Romhilt-Estes ≥ 5 points"
+              threshold_positive: 5
+              items:
+                - points: 3
+                  when:
+                    kind: threshold
+                    expr: "max(R_I_mV, R_II_mV, R_III_mV, abs(S_I_mV), abs(S_II_mV), abs(S_III_mV), R_aVL_mV, R_aVF_mV)"
+                    op: ">="
+                    value: 2.0
+                - points: 3
+                  when:
+                    kind: any_of
+                    clauses:
+                      - { kind: threshold, expr: "max(S_V1_mV, S_V2_mV)", op: ">=", value: 3.0 }
+                      - { kind: threshold, expr: "max(R_V5_mV, R_V6_mV)", op: ">=", value: 3.0 }
+                - points: 2
+                  when:
+                    kind: threshold
+                    expr: "QRS_axis_deg"
+                    op: "<="
+                    value: -30
+                - points: 1
+                  when:
+                    kind: threshold
+                    expr: "QRS_ms"
+                    op: ">="
+                    value: 90

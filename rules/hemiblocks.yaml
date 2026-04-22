@@ -1,0 +1,106 @@
+disease: Hemiblocks
+manual_source: "12SL Physicians Guide v24, §3.7.2.8.3 p.62"
+description: >
+  Fascicular blocks. The manual defines:
+    - Left anterior fascicular block (LAFB): QRS axis <= -45 deg, R > Q in I
+      and aVL, any Q in I, AND (S or S') > (R or R') in II.
+    - Left posterior fascicular block (LPFB): age > 30, no S1-S2-S3 pattern,
+      no pulmonary disease, QRS axis 110..180 deg, Q present and R > Q in III
+      and aVF.
+    - Nonspecific IVCD: only if no conduction abnormality is stated and
+      QRS duration > 105 ms (verbatim §3.7.2.8.3 last paragraph).
+manual_departure_notes: |
+  Our feature registry does not provide R' / S' separately - we have only
+  single-peak R and S amplitudes. The manual's "S or S' > R or R' in II"
+  condition for LAFB becomes "S_II_mV > R_II_mV". The "no pulmonary
+  disease statement" exclusion for LPFB is not currently cross-checked
+  against the pulmonary-disease rule, since the engine evaluates diseases
+  independently; a post-pass would be required to honour this.
+
+  IVCD_nonspecific: the Guide requires BOTH (a) no stated conduction
+  abnormality and (b) QRS > 105 ms. We enforce (a) with SCP-derived
+  lbbb/rbbb/ilbbb/irbbb/lafb/lpfb flags on PTB-XL and also require NOT
+  (LAFB morphology) and NOT (LPFB morphology) so unstated fascicular
+  patterns do not co-fire IVCD.
+exclusions: [WPW, Paced]
+variants:
+  - name: LAFB
+    manual_page: 62
+    description: "Left anterior fascicular block."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "QRS axis <= -45 deg",      expr: "QRS_axis_deg",       op: "<=", value: -45 }
+        - { kind: threshold, note: "R > Q in I",                expr: "R_I_mV - Q_I_mV",   op: ">",  value: 0   }
+        - { kind: threshold, note: "R > Q in aVL",              expr: "R_aVL_mV - Q_aVL_mV", op: ">", value: 0 }
+        - { kind: threshold, note: "Any Q in I (Q_I >= 0.025)", expr: "Q_I_mV",            op: ">=", value: 0.025 }
+        - { kind: threshold, note: "S > R in II",               expr: "S_II_mV - R_II_mV", op: ">",  value: 0   }
+
+  - name: LPFB
+    manual_page: 62
+    description: "Left posterior fascicular block."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Age > 30",                        expr: "age_years",      op: ">",  value: 30  }
+        - { kind: threshold, note: "QRS axis >= 110 deg",             expr: "QRS_axis_deg",   op: ">=", value: 110 }
+        - { kind: threshold, note: "QRS axis <= 180 deg",             expr: "QRS_axis_deg",   op: "<=", value: 180 }
+        - { kind: threshold, note: "Q present in III (Q_III >= 0.025)", expr: "Q_III_mV",     op: ">=", value: 0.025 }
+        - { kind: threshold, note: "Q present in aVF (Q_aVF >= 0.025)", expr: "Q_aVF_mV",     op: ">=", value: 0.025 }
+        - { kind: threshold, note: "R > Q in III",                    expr: "R_III_mV - Q_III_mV", op: ">", value: 0 }
+        - { kind: threshold, note: "R > Q in aVF",                    expr: "R_aVF_mV - Q_aVF_mV", op: ">", value: 0 }
+        - kind: not_
+          note: "Not S1-S2-S3 pattern"
+          clause:
+            kind: all_of
+            clauses:
+              - { kind: threshold, expr: "S_I_mV",   op: ">=", value: 0.1 }
+              - { kind: threshold, expr: "S_II_mV",  op: ">=", value: 0.1 }
+              - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }
+
+  - name: IVCD_nonspecific
+    manual_page: 62
+    description: >
+      Nonspecific intraventricular conduction delay per §3.7.2.8.3: QRS > 105 ms
+      when no conduction abnormality is stated and LAFB/LPFB morphology is not
+      present.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "QRS duration > 105 ms", expr: "QRS_ms", op: ">", value: 105 }
+        - { kind: threshold, note: "No CLBBB stated (SCP)", expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "No CRBBB stated (SCP)", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "No ILBBB stated (SCP)", expr: "ilbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "No IRBBB stated (SCP)", expr: "irbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "No LAFB stated (SCP)", expr: "lafb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "No LPFB stated (SCP)", expr: "lpfb_flag", op: "<", value: 1 }
+        - kind: not_
+          note: "Not left anterior fascicular block morphology"
+          clause:
+            kind: all_of
+            clauses:
+              - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: -45 }
+              - { kind: threshold, expr: "R_I_mV - Q_I_mV", op: ">", value: 0 }
+              - { kind: threshold, expr: "R_aVL_mV - Q_aVL_mV", op: ">", value: 0 }
+              - { kind: threshold, expr: "Q_I_mV", op: ">=", value: 0.025 }
+              - { kind: threshold, expr: "S_II_mV - R_II_mV", op: ">", value: 0 }
+        - kind: not_
+          note: "Not left posterior fascicular block morphology"
+          clause:
+            kind: all_of
+            clauses:
+              - { kind: threshold, expr: "age_years", op: ">", value: 30 }
+              - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 110 }
+              - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: 180 }
+              - { kind: threshold, expr: "Q_III_mV", op: ">=", value: 0.025 }
+              - { kind: threshold, expr: "Q_aVF_mV", op: ">=", value: 0.025 }
+              - { kind: threshold, expr: "R_III_mV - Q_III_mV", op: ">", value: 0 }
+              - { kind: threshold, expr: "R_aVF_mV - Q_aVF_mV", op: ">", value: 0 }
+              - kind: not_
+                note: "Not S1-S2-S3 pattern"
+                clause:
+                  kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "S_I_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "S_II_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }

@@ -1,0 +1,172 @@
+disease: NonspecificTWave
+manual_source: "12SL Physicians Guide v24, §3.7.2.13.2 p.82"
+description: >
+  Nonspecific T-wave abnormality (acronym NT). The manual states that small
+  T waves or shallow T-wave inversion in at least two leads leads to the
+  statement “Nonspecific T wave abnormality.”
+manual_departure_notes: |
+  The manual does not define “small” or “shallow” numerically. We operationalize,
+  following common textbook ECG usage (e.g. Surawicz & Knilans, Chou’s
+  Electrocardiography in Clinical Practice, 6th ed., 2008 — sub-1 mm T waves as
+  low-amplitude; shallow inversion often discussed in the ~0–1 mm range):
+    • Small positive T: 0 < T_mV < 0.10 (i.e. < 1 mm).
+    • Shallow T inversion: −0.10 mV ≤ T_mV < 0 (inversion not deeper than 1 mm).
+  A lead counts toward the “≥ 2 leads” requirement if either condition holds.
+  Lead aVR is excluded from scoring (normally inverted T). Isoelectric T (≈0)
+  does not score as “small upright” or “shallow inverted”; this is a deliberate
+  limitation of amplitude-only rules.
+exclusions: []
+sex_specific: false
+variants:
+  - name: NT_small_or_shallow_in_two_leads
+    manual_page: 82
+    description: >
+      Point score ≥ 2 across I, II, III, aVR (excluded), aVL, aVF, V1–V6 for
+      small upright T (0–0.1 mV) or shallow inversion [−0.1, 0) mV.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - points: 1
+          note: "Lead I: small upright or shallow inverted T"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_I_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_I_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_I_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_I_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead II"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_II_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_II_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_II_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_II_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead III"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_III_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_III_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_III_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_III_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead aVL"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_aVL_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_aVL_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_aVL_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_aVL_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead aVF"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_aVF_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_aVF_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_aVF_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_aVF_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V1"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V1_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V2"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V2_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V3"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V3_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V3_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V3_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V3_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V4"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V4_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V4_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V4_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V4_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V5"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V5_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V5_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V5_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V5_mV", op: ">=", value: -0.10 }
+        - points: 1
+          note: "Lead V6"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V6_mV", op: ">", value: 0 }
+                  - { kind: threshold, expr: "T_V6_mV", op: "<", value: 0.10 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "T_V6_mV", op: "<", value: 0 }
+                  - { kind: threshold, expr: "T_V6_mV", op: ">=", value: -0.10 }

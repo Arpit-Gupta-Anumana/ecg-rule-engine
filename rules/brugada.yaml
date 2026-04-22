@@ -1,0 +1,44 @@
+disease: Brugada
+manual_source: "12SL Physicians Guide v24, §3.7.2.7 p.59"
+description: >
+  Brugada pattern, type 1. The manual:
+    "prominent coved ST-segment elevation displaying J-point amplitude or
+    ST-segment elevation >= 200 uV at its peak followed by a negative T-wave,
+    with little or no isoelectric separation. If found in V1 or V2, and RBBB
+    and anterior injury are ruled out, state Brugada pattern, type 1."
+  Test skipped if WPW, QRS duration > 150 ms, or ventricular rate > 150 bpm.
+manual_departure_notes: |
+  The manual requires a "coved" ST morphology plus a negative T-wave
+  following it. Our feature set gives us only the numeric STJ (J-point
+  offset) and STM (mid-ST offset) amplitudes per lead - we cannot
+  distinguish "coved" vs "saddle-back" morphology from these two points
+  alone. We encode an over-approximation: STJ and STM both >= 0.2 mV in V1
+  or V2 and T-wave amplitude <= -0.1 mV (negative T) in the same lead. This
+  will over-fire on non-Brugada ST elevations with negative T and should not
+  be used as a stand-alone Brugada screen; use it as a candidate surfacer
+  that a clinician manually adjudicates.
+exclusions: [WPW, RBBB]
+variants:
+  - name: Brugada_type1_V1
+    manual_page: 59
+    description: "ST elevation >= 0.2 mV at J-point AND mid-ST in V1, negative T in V1."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms",               op: "<=", value: 150 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 150 }
+        - { kind: threshold, expr: "STJ_V1_mV",            op: ">=", value: 0.2 }
+        - { kind: threshold, expr: "STM_V1_mV",            op: ">=", value: 0.2 }
+        - { kind: threshold, expr: "T_V1_mV",              op: "<=", value: -0.1 }
+
+  - name: Brugada_type1_V2
+    manual_page: 59
+    description: "ST elevation >= 0.2 mV at J-point AND mid-ST in V2, negative T in V2."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms",               op: "<=", value: 150 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 150 }
+        - { kind: threshold, expr: "STJ_V2_mV",            op: ">=", value: 0.2 }
+        - { kind: threshold, expr: "STM_V2_mV",            op: ">=", value: 0.2 }
+        - { kind: threshold, expr: "T_V2_mV",              op: "<=", value: -0.1 }

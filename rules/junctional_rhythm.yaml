@@ -1,0 +1,111 @@
+disease: JunctionalRhythm
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.5 p.41"
+description: >
+  Junctional rhythm family when P waves are visible before QRS: PR < 140 ms,
+  P axis outside −60° to 240°, adult. JBRAD ventricular rate < 50; JR 50–75;
+  JTACH > 75. Manual also defines a pathway when P waves are NOT visible
+  (narrow QRS, regularity, rate bands JUNBRAD/JUNCT-R/ACCEL) which is not
+  encoded here.
+manual_departure_notes: |
+  Only the "P waves visible before QRS" pathway is implemented using PR_ms and
+  P_axis_deg. The manual's alternate pathway requires assessment of P-wave
+  visibility, QRS width < 120 ms, RR regularity, and rate bands (< 90 bpm) for
+  JUNBRAD/JUNCT-R/accelerated junctional—none of which are fully represented
+  without explicit P-absence and RR-regularity features.
+
+  "P wave axis outside of −60 to 240 degrees" is encoded as P_axis_deg < −60
+  OR P_axis_deg > 240.
+
+  Adult age (manual) is encoded as age_years >= 18.
+variants:
+  - name: JunctionalBradycardia
+    manual_page: 41
+    description: "JBRAD: ventricular rate < 50 bpm; PR < 140 ms; P axis outside −60..240°; adult."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "age_years"
+          op: ">="
+          value: 18
+        - kind: threshold
+          expr: "PR_ms"
+          op: "<"
+          value: 140
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: "<"
+          value: 50
+        - kind: any_of
+          note: "P axis outside −60 to 240° (manual)"
+          clauses:
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: "<"
+              value: -60
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: ">"
+              value: 240
+
+  - name: JunctionalRhythm
+    manual_page: 41
+    description: "JR: ventricular rate 50–75 bpm; PR < 140 ms; P axis outside −60..240°; adult."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "age_years"
+          op: ">="
+          value: 18
+        - kind: threshold
+          expr: "PR_ms"
+          op: "<"
+          value: 140
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: ">="
+          value: 50
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: "<="
+          value: 75
+        - kind: any_of
+          clauses:
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: "<"
+              value: -60
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: ">"
+              value: 240
+
+  - name: JunctionalTachycardia
+    manual_page: 41
+    description: "JTACH: ventricular rate > 75 bpm; PR < 140 ms; P axis outside −60..240°; adult."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "age_years"
+          op: ">="
+          value: 18
+        - kind: threshold
+          expr: "PR_ms"
+          op: "<"
+          value: 140
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: ">"
+          value: 75
+        - kind: any_of
+          clauses:
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: "<"
+              value: -60
+            - kind: threshold
+              expr: "P_axis_deg"
+              op: ">"
+              value: 240

@@ -1,0 +1,72 @@
+disease: PediatricSTElevation
+manual_source: "12SL Physicians Guide v24, §3.7.3.11.1 p.100"
+description: >
+  Pediatric ST-segment elevation by lead group. Manual states elevation
+  descriptively for anterior, lateral, and inferior territories. Tests skipped
+  when WPW, LBBB, RBBB, or QRS duration > 120 ms.
+manual_departure_notes: |
+  Regional grouping and "≥ 2 leads" with STJ >= 0.10 mV are project
+  operationalizations; the manual excerpt is descriptive rather than numeric.
+
+  Skip conditions are encoded per clause (wpw_flag, lbbb_flag, rbbb_flag,
+  QRS_ms <= 120).
+
+  STJ (J-point) amplitude is used; mid-ST (STM) is not required here.
+exclusions: []
+sex_specific: false
+variants:
+  - name: Anterior_ST_elevation_ped
+    manual_page: 100
+    description: "STJ >= 0.10 mV in >= 2 of V1–V4; skips applied; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if LBBB (manual)", expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if RBBB (manual)", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS > 120 ms (manual)", expr: "QRS_ms", op: "<=", value: 120 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.10 } }
+
+  - name: Lateral_ST_elevation_ped
+    manual_page: 100
+    description: "STJ >= 0.10 mV in >= 2 of I, aVL, V5, V6; skips applied; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if LBBB (manual)", expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if RBBB (manual)", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS > 120 ms (manual)", expr: "QRS_ms", op: "<=", value: 120 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV",   op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV",  op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV",  op: ">=", value: 0.10 } }
+
+  - name: Inferior_ST_elevation_ped
+    manual_page: 100
+    description: "STJ >= 0.10 mV in >= 2 of II, III, aVF; skips applied; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if LBBB (manual)", expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if RBBB (manual)", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS > 120 ms (manual)", expr: "QRS_ms", op: "<=", value: 120 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV",  op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.10 } }

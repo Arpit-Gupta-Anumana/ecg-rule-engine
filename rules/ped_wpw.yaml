@@ -1,0 +1,33 @@
+disease: PediatricWPW
+manual_source: "12SL Physicians Guide v24, §3.7.3.1 p.86"
+description: >
+  Pediatric Wolff-Parkinson-White. Manual: "WPW requires delta waves in three or
+  more of 12 leads, P axis between -30 and 120 degrees, and short PR for age."
+manual_departure_notes: |
+  Delta waves in ≥3 leads are not available in our feature registry; no
+  automated substitute is applied (see §3.7.3.1 qualitative requirement).
+
+  "Short PR for age" is operationalized as PR_ms <= 100 ms with age_years <= 15.
+  The 100 ms cutoff is a widely cited pediatric short-PR reference on resting ECG
+  (e.g. Davignon et al., Pediatric Electrocardiograph Standards, Circulation 1979/1980
+  series on normal pediatric intervals; Park, Pediatric Cardiology for Practitioners,
+  6th ed., 2014 — PR interval shortens with age in children; <=100 ms in older
+  children is commonly used as a screening threshold for pre-excitation patterns).
+  This is not a verbatim GE table value.
+
+  P-axis limits (-30 to 120 deg) are quoted from the manual excerpt.
+exclusions: []
+sex_specific: false
+variants:
+  - name: WPW_ped_PR_P_axis_proxy
+    manual_page: 86
+    description: >
+      Proxy only: PR <= 100 ms and P axis in [-30, 120] deg, pediatric age gate.
+      Does NOT satisfy the manual delta-wave requirement.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "PR_ms", op: "<=", value: 100 }
+        - { kind: threshold, expr: "P_axis_deg", op: ">=", value: -30 }
+        - { kind: threshold, expr: "P_axis_deg", op: "<=", value: 120 }

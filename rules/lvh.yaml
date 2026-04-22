@@ -1,0 +1,97 @@
+disease: LVH
+manual_source: "12SL Physicians Guide v24, §3.7.2.9.2 p.64-65"
+description: >
+  Left ventricular hypertrophy. The 12SL program incorporates four commonly used
+  LVH criteria: R in aVL, Sokolow-Lyon voltage, Cornell product, and Romhilt-Estes
+  point score. Each is encoded as its own variant. Exclusions (RBBB, LBBB, WPW,
+  ventricular pacing) apply at the disease level. Age >= 30 gates for voltage
+  criteria per the manual are encoded inside each relevant variant.
+exclusions: [LBBB, RBBB, WPW, Paced]
+sex_specific: true
+variants:
+  - name: R_in_aVL
+    manual_page: 64
+    description: "R amplitude in aVL > 1.1 mV (manual: > 1100 uV)."
+    clause:
+      kind: threshold
+      expr: "R_aVL_mV"
+      op: ">"
+      value: 1.1
+
+  - name: Sokolow_Lyon
+    manual_page: 64
+    description: >
+      max S in V1 (or V2) + max R in V5 or V6 > 3.5 mV (manual: > 3500 uV)
+      AND age >= 30 years.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Sokolow-Lyon voltage > 3.5 mV"
+          expr: "max(S_V1_mV, S_V2_mV) + max(R_V5_mV, R_V6_mV)"
+          op: ">"
+          value: 3.5
+        - kind: threshold
+          note: "Age gate (>= 30 years) per manual"
+          expr: "age_years"
+          op: ">="
+          value: 30
+
+  - name: Cornell_product
+    manual_page: 64
+    description: >
+      Cornell product = (R_aVL + S_V3 + 0.6 mV for females) * QRS_ms > 244 mV*ms
+      (manual: 244 uV*sec). Requires age >= 30 and no RBBB (RBBB already in
+      disease-level exclusions).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Cornell product (with female voltage boost) > 244 mV*ms"
+          expr: "(R_aVL_mV + S_V3_mV + 0.6 * sex_F_flag) * QRS_ms"
+          op: ">"
+          value: 244
+        - kind: threshold
+          note: "Age gate (>= 30 years) per manual"
+          expr: "age_years"
+          op: ">="
+          value: 30
+
+  - name: Romhilt_Estes
+    manual_page: 64
+    description: >
+      Point-score test with threshold >= 5 points. Encoded from the classical
+      Romhilt-Estes criteria which the manual references; item set uses widely
+      accepted scoring. Axis item is >= -30 deg leftward deviation.
+    clause:
+      kind: point_score
+      threshold_positive: 5
+      items:
+        - points: 3
+          note: "Any limb-lead R or S amplitude >= 2.0 mV"
+          when:
+            kind: threshold
+            expr: "max(R_I_mV, R_II_mV, R_III_mV, abs(S_I_mV), abs(S_II_mV), abs(S_III_mV), R_aVL_mV, R_aVF_mV)"
+            op: ">="
+            value: 2.0
+        - points: 3
+          note: "S V1 or S V2 >= 3.0 mV, OR R V5 or R V6 >= 3.0 mV"
+          when:
+            kind: any_of
+            clauses:
+              - { kind: threshold, expr: "max(S_V1_mV, S_V2_mV)", op: ">=", value: 3.0 }
+              - { kind: threshold, expr: "max(R_V5_mV, R_V6_mV)", op: ">=", value: 3.0 }
+        - points: 2
+          note: "Left axis deviation <= -30 deg"
+          when:
+            kind: threshold
+            expr: "QRS_axis_deg"
+            op: "<="
+            value: -30
+        - points: 1
+          note: "QRS duration >= 90 ms"
+          when:
+            kind: threshold
+            expr: "QRS_ms"
+            op: ">="
+            value: 90

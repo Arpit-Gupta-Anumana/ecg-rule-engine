@@ -1,0 +1,17 @@
+disease: PedBiventricularHypertrophy
+manual_source: "12SL Physicians Guide v24, §3.7.3.9.3 p.97"
+description: >
+  If both RVH and LVH are detected, state biventricular hypertrophy. Encoded as
+  R_V1 > 1.0 mV (RVH proxy) AND S_V1 + R_V6 > 4.0 mV (LVH proxy), age <= 15 y.
+exclusions: []
+sex_specific: false
+variants:
+  - name: Biventricular_hypertrophy_ped_voltage
+    manual_page: 97
+    description: "R_V1 > 1.0 mV and S_V1 + R_V6 > 4.0 mV; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "RVH proxy", expr: "R_V1_mV", op: ">", value: 1.0 }
+        - { kind: threshold, note: "LVH proxy", expr: "S_V1_mV + R_V6_mV", op: ">", value: 4.0 }

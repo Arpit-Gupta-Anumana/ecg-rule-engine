@@ -1,0 +1,41 @@
+{
+  "_comment": "Example column mapping file. Map our canonical feature IDs to your CSV column names. See feature_dictionary.json for all 138 IDs with descriptions and units.",
+
+  "QRS_ms": "QRS_Duration",
+  "PR_ms": "PR_Interval",
+  "QT_ms": "QT_Interval",
+  "QTc_Bazett_ms": "QTcB",
+  "ventricular_rate_bpm": "HeartRate",
+  "atrial_rate_bpm": "AtrialRate",
+  "RR_ms": "RR_Mean",
+  "P_ms": "P_Duration",
+
+  "QRS_axis_deg": "QRS_Axis",
+  "P_axis_deg": "P_Axis",
+  "T_axis_deg": "T_Axis",
+
+  "R_I_mV": "R_amp_I",
+  "R_V1_mV": "R_amp_V1",
+  "R_V5_mV": "R_amp_V5",
+  "R_V6_mV": "R_amp_V6",
+  "R_aVL_mV": "R_amp_aVL",
+
+  "S_V1_mV": {"column": "S_amp_V1", "transform": "abs"},
+  "S_V2_mV": {"column": "S_amp_V2", "transform": "abs"},
+  "S_V3_mV": {"column": "S_amp_V3", "transform": "abs"},
+  "S_I_mV":  {"column": "S_amp_I",  "transform": "abs"},
+
+  "Q_V1_mV": {"column": "Q_amp_V1", "transform": "abs"},
+  "Q_V6_mV": {"column": "Q_amp_V6", "transform": "abs"},
+
+  "STM_V1_mV": {"column": "ST_mid_V1", "transform": "divide_1000"},
+  "STJ_V1_mV": "ST_J_V1",
+
+  "T_I_mV": "T_amp_I",
+  "T_V1_mV": "T_amp_V1",
+  "P_V1_mV": "P_amp_V1",
+
+  "age_years": "patient_age",
+  "sex_col": "gender",
+  "sex_male_value": "M"
+}

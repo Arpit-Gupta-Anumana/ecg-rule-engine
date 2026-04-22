@@ -1,0 +1,275 @@
+disease: QWaveMI
+manual_source: "12SL Physicians Guide v24, §3.7.2.10 p.67-71"
+description: >
+  Q-wave myocardial infarction per region. The manual (§3.7.2.10.x) qualitatively
+  describes "significant Q:R ratio", "Q wave width", and "R-wave regression" as
+  the dominant signals per region, in increasing severity tiers (Cannot rule out
+  -> Possible -> unqualified infarct). The manual does not expose the exact
+  numeric cutoffs 12SL itself uses, so each variant below encodes the widely
+  used ESC/AHA/HRS "universal definition of MI" Q-wave cutoffs:
+
+    * any Q_ms >= 30 ms together with Q_mV >= 0.1 mV in the region, OR
+    * Q:R ratio >= 0.25 with Q_ms >= 20 ms in the region, OR
+    * (for posterior) R:S in V1 or V2 indicating mirror-image Q-wave.
+
+  The regions implemented here (septal, anterior, lateral, inferior, posterior)
+  match the manual's acronyms SMI / AMI / LMI / IMI / POSTMI. Each variant fires
+  if its regional Q-wave criterion is met, with appropriate exclusions for
+  conduction disease (WPW, LBBB) as mandated by §3.7.2.10.
+manual_departure_notes: >
+  The manual exposes only qualitative language for Q-wave significance ("Q wave
+  width, depth, and Q:R ratio"). Cutoffs used here are the ESC/AHA/HRS universal
+  MI Q-wave criteria (Thygesen et al., 2018), which GE's own text cites as the
+  basis for its Q:R thresholds. The "qualified vs unqualified" severity ladder
+  in the manual (Cannot rule out / Possible / Infarct) is not reproduced - this
+  rule outputs a single Boolean per region. A downstream severity step can be
+  added once the injury pattern post-pass is implemented. Exclusions follow the
+  manual verbatim: all Q-wave MI tests are skipped if WPW or LBBB are stated
+  (§3.7.2.10 preamble). Posterior MI additional exclusions (RBBB, IRBBB, RVH,
+  age <= 30, QRS >= 120 ms) per §3.7.2.10.6 are encoded inside the variant.
+exclusions: [WPW, LBBB]
+sex_specific: false
+variants:
+
+  - name: Septal_MI
+    manual_page: 67
+    description: >
+      Significant Q in V1-V2 (GE acronym SMI, §3.7.2.10.1). Uses the universal
+      MI definition: any of V1 or V2 with Q duration >= 30 ms and |Q| >= 0.1 mV,
+      or Q:R ratio >= 0.25 with Q duration >= 20 ms.
+    clause:
+      kind: any_of
+      clauses:
+        - kind: all_of
+          note: "V1: Q >= 30 ms AND |Q| >= 0.1 mV (universal MI criterion)"
+          clauses:
+            - { kind: threshold, expr: "Q_V1_ms", op: ">=", value: 30 }
+            - { kind: threshold, expr: "Q_V1_mV", op: ">=", value: 0.1 }
+        - kind: all_of
+          note: "V2: Q >= 30 ms AND |Q| >= 0.1 mV"
+          clauses:
+            - { kind: threshold, expr: "Q_V2_ms", op: ">=", value: 30 }
+            - { kind: threshold, expr: "Q_V2_mV", op: ">=", value: 0.1 }
+        - kind: all_of
+          note: "V1: Q:R >= 0.25 AND Q >= 20 ms (width+depth ratio criterion)"
+          clauses:
+            - { kind: threshold, expr: "Q_V1_mV - 0.25 * R_V1_mV", op: ">=", value: 0.0 }
+            - { kind: threshold, expr: "R_V1_mV", op: ">=", value: 0.1 }
+            - { kind: threshold, expr: "Q_V1_ms", op: ">=", value: 20 }
+        - kind: all_of
+          note: "V2: Q:R >= 0.25 AND Q >= 20 ms"
+          clauses:
+            - { kind: threshold, expr: "Q_V2_mV - 0.25 * R_V2_mV", op: ">=", value: 0.0 }
+            - { kind: threshold, expr: "R_V2_mV", op: ">=", value: 0.1 }
+            - { kind: threshold, expr: "Q_V2_ms", op: ">=", value: 20 }
+
+  - name: Anterior_MI
+    manual_page: 68
+    description: >
+      Significant Q in V3-V4 (GE acronym AMI, §3.7.2.10.2). Uses the universal
+      MI definition across V3 and V4: at least one lead with Q >= 30 ms and
+      |Q| >= 0.1 mV, or Q:R >= 0.25 with Q >= 20 ms. Poor R-wave progression
+      alone (R_V3 + R_V4 tiny) is a weaker criterion not encoded here to avoid
+      confounding with lead misplacement (§3.7.2.10.7 poor R-wave progression).
+    clause:
+      kind: any_of
+      clauses:
+        - kind: all_of
+          note: "V3: Q >= 30 ms AND |Q| >= 0.1 mV"
+          clauses:
+            - { kind: threshold, expr: "Q_V3_ms", op: ">=", value: 30 }
+            - { kind: threshold, expr: "Q_V3_mV", op: ">=", value: 0.1 }
+        - kind: all_of
+          note: "V4: Q >= 30 ms AND |Q| >= 0.1 mV"
+          clauses:
+            - { kind: threshold, expr: "Q_V4_ms", op: ">=", value: 30 }
+            - { kind: threshold, expr: "Q_V4_mV", op: ">=", value: 0.1 }
+        - kind: all_of
+          note: "V3: Q:R >= 0.25 AND Q >= 20 ms"
+          clauses:
+            - { kind: threshold, expr: "Q_V3_mV - 0.25 * R_V3_mV", op: ">=", value: 0.0 }
+            - { kind: threshold, expr: "R_V3_mV", op: ">=", value: 0.1 }
+            - { kind: threshold, expr: "Q_V3_ms", op: ">=", value: 20 }
+        - kind: all_of
+          note: "V4: Q:R >= 0.25 AND Q >= 20 ms"
+          clauses:
+            - { kind: threshold, expr: "Q_V4_mV - 0.25 * R_V4_mV", op: ">=", value: 0.0 }
+            - { kind: threshold, expr: "R_V4_mV", op: ">=", value: 0.1 }
+            - { kind: threshold, expr: "Q_V4_ms", op: ">=", value: 20 }
+
+  - name: Lateral_MI
+    manual_page: 68
+    description: >
+      Significant Q in at least two of the four lateral leads I, aVL, V5, V6
+      (GE acronym LMI, §3.7.2.10.3 - manual specifies "at least two of the four
+      lateral leads have wide and deep Q waves that have significant Q:R
+      ratios"). Encoded as a point_score: each lateral lead scores 1 if its Q
+      meets either the Q >= 30 ms / |Q| >= 0.1 mV criterion OR the Q:R >= 0.25
+      with Q >= 20 ms criterion; rule fires when score >= 2.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - points: 1
+          note: "Lead I: significant Q"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_I_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_I_mV", op: ">=", value: 0.1 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_I_mV - 0.25 * R_I_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_I_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_I_ms", op: ">=", value: 20 }
+        - points: 1
+          note: "Lead aVL: significant Q"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_aVL_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_aVL_mV", op: ">=", value: 0.1 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_aVL_mV - 0.25 * R_aVL_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_aVL_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_aVL_ms", op: ">=", value: 20 }
+        - points: 1
+          note: "Lead V5: significant Q"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V5_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_V5_mV", op: ">=", value: 0.1 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V5_mV - 0.25 * R_V5_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_V5_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_V5_ms", op: ">=", value: 20 }
+        - points: 1
+          note: "Lead V6: significant Q"
+          when:
+            kind: any_of
+            clauses:
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V6_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_V6_mV", op: ">=", value: 0.1 }
+              - kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V6_mV - 0.25 * R_V6_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_V6_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_V6_ms", op: ">=", value: 20 }
+
+  - name: Inferior_MI
+    manual_page: 70
+    description: >
+      Significant Q in inferior leads II / aVF (GE acronym IMI, §3.7.2.10.5).
+      The manual states "Significant Q:R ratio is the main component of the IMI
+      tests" and "The significance of the Q:R ratio is evaluated in conjunction
+      with Q amplitude, Q duration, QRS axis, and presence of Q in lead II".
+      Encoded as: inferior MI requires a significant Q in lead II (per manual's
+      emphasis) AND either Q II or Q aVF meets the universal MI criterion. A
+      purely aVF-only finding is downgraded by requiring Q II >= 20 ms as well.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Q present in lead II (>= 20 ms) - manual emphasises lead II"
+          expr: "Q_II_ms"
+          op: ">="
+          value: 20
+        - kind: any_of
+          note: "Significant Q in II or aVF"
+          clauses:
+            - kind: all_of
+              note: "II: Q >= 30 ms AND |Q| >= 0.1 mV"
+              clauses:
+                - { kind: threshold, expr: "Q_II_ms", op: ">=", value: 30 }
+                - { kind: threshold, expr: "Q_II_mV", op: ">=", value: 0.1 }
+            - kind: all_of
+              note: "aVF: Q >= 30 ms AND |Q| >= 0.1 mV"
+              clauses:
+                - { kind: threshold, expr: "Q_aVF_ms", op: ">=", value: 30 }
+                - { kind: threshold, expr: "Q_aVF_mV", op: ">=", value: 0.1 }
+            - kind: all_of
+              note: "II: Q:R >= 0.25 AND Q >= 20 ms"
+              clauses:
+                - { kind: threshold, expr: "Q_II_mV - 0.25 * R_II_mV", op: ">=", value: 0.0 }
+                - { kind: threshold, expr: "R_II_mV", op: ">=", value: 0.1 }
+                - { kind: threshold, expr: "Q_II_ms", op: ">=", value: 20 }
+            - kind: all_of
+              note: "aVF: Q:R >= 0.25 AND Q >= 20 ms"
+              clauses:
+                - { kind: threshold, expr: "Q_aVF_mV - 0.25 * R_aVF_mV", op: ">=", value: 0.0 }
+                - { kind: threshold, expr: "R_aVF_mV", op: ">=", value: 0.1 }
+                - { kind: threshold, expr: "Q_aVF_ms", op: ">=", value: 20 }
+
+  - name: Posterior_MI
+    manual_page: 71
+    description: >
+      Posterior infarct mirror-image in V1-V2-V3 (GE acronym POSTMI,
+      §3.7.2.10.6). Manual requires "positive QRS balance in leads V1 and V2,
+      or V2 and V3, along with ST depression and upright T waves in V1 and/or
+      V2". Additional disease-level exclusions (RBBB, IRBBB, RVH, age <= 30,
+      QRS >= 120 ms) are encoded inside the variant since the engine exclusions
+      list is shared across all variants.
+    clause:
+      kind: all_of
+      clauses:
+        # Embedded exclusions (manual §3.7.2.10.6 preamble)
+        - kind: threshold
+          note: "Exclusion when QRS >= 120 ms — require QRS < 120 for posterior test"
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+        - kind: threshold
+          note: "Exclusion: age > 30 years"
+          expr: "age_years"
+          op: ">"
+          value: 30
+        - kind: threshold
+          note: "Exclusion: RBBB not present"
+          expr: "rbbb_flag"
+          op: "<"
+          value: 1
+        - kind: threshold
+          note: "Exclusion: IRBBB not present"
+          expr: "irbbb_flag"
+          op: "<"
+          value: 1
+        - kind: threshold
+          note: "Exclusion: RVH not present"
+          expr: "rvh_flag"
+          op: "<"
+          value: 1
+        # QRS balance positive in (V1 and V2) or (V2 and V3): R > S proxy
+        - kind: any_of
+          note: "Positive QRS balance in V1+V2 OR V2+V3"
+          clauses:
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "R_V1_mV - S_V1_mV", op: ">", value: 0 }
+                - { kind: threshold, expr: "R_V2_mV - S_V2_mV", op: ">", value: 0 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "R_V2_mV - S_V2_mV", op: ">", value: 0 }
+                - { kind: threshold, expr: "R_V3_mV - S_V3_mV", op: ">", value: 0 }
+        # ST depression in V1 and/or V2 (reciprocal to posterior ST elevation)
+        - kind: any_of
+          note: "ST depression in V1 or V2 (<= -0.05 mV)"
+          clauses:
+            - { kind: threshold, expr: "STJ_V1_mV", op: "<=", value: -0.05 }
+            - { kind: threshold, expr: "STJ_V2_mV", op: "<=", value: -0.05 }
+        # Upright T in V1 and/or V2 (the reciprocal of a posterior T wave)
+        - kind: any_of
+          note: "Upright (positive) T in V1 or V2"
+          clauses:
+            - { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 }
+            - { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 }

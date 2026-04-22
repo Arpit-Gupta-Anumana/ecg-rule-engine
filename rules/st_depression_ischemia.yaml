@@ -1,0 +1,150 @@
+disease: STDepressionIschemia
+manual_source: "12SL Physicians Guide v24, §3.7.2.12.1 p.77-78 (subendocardial injury) and §3.7.2.12.2 p.79 (nonspecific ST) and §3.7.2.12.3 p.79 (junctional)"
+description: >
+  ST depression patterns suggestive of subendocardial ischemia/injury.
+  §3.7.2.12.1 gives explicit numeric thresholds:
+
+    * Frontal-plane limb leads: STJ < -100 uV (-0.10 mV)
+    * Precordial leads:          STJ < -200 uV (-0.20 mV)
+
+  Regional variants (septal, anterior, lateral, inferior) encode the manual's
+  per-region lead lists. A generalized variant encodes the "more sensitive"
+  second test (§3.7.2.12.1 last paragraph): STDEP true if >= 2 non-excluded
+  leads show STJ < -0.10 mV, excluding aVR, III, V1-V3 (and additionally V4
+  when RBBB is true).
+manual_departure_notes: >
+  The manual gates several of these on "no anterior MI already stated", "no
+  LVH with repolarization abnormality", etc.  Those cross-rule gates are NOT
+  encoded here because rule evaluation in this engine is per-disease and the
+  statement-suppression post-pass (which removes ST-depression findings when
+  an injury pattern already fired) is handled separately in the post-processor.
+  Junctional ST depression (§3.7.2.12.3) is modelled as a separate variant and
+  requires STJ < -0.10 mV in >= 2 leads excluding aVR, V1-V3; we cannot
+  distinguish upsloping from downsloping ST from STJ/STM alone without slope
+  data, so the upright-slope requirement is approximated by STM > STJ (mid-ST
+  above J-point).
+exclusions: [LBBB, WPW, Paced]
+sex_specific: false
+variants:
+
+  - name: Septal_Subendocardial
+    manual_page: 77
+    description: >
+      Max STJ of V1 or V2 below -0.20 mV (precordial precordial threshold,
+      §3.7.2.12.1).
+    clause:
+      kind: any_of
+      clauses:
+        - { kind: threshold, expr: "STJ_V1_mV", op: "<=", value: -0.20 }
+        - { kind: threshold, expr: "STJ_V2_mV", op: "<=", value: -0.20 }
+
+  - name: Anterior_Subendocardial
+    manual_page: 77
+    description: >
+      Max STJ of V3 or V4 below -0.20 mV (precordial threshold).
+    clause:
+      kind: any_of
+      clauses:
+        - { kind: threshold, expr: "STJ_V3_mV", op: "<=", value: -0.20 }
+        - { kind: threshold, expr: "STJ_V4_mV", op: "<=", value: -0.20 }
+
+  - name: Lateral_Subendocardial
+    manual_page: 78
+    description: >
+      Max STJ of at least one of V5, V6 (precordial, -0.20 mV) OR I, aVL
+      (frontal, -0.10 mV) below threshold.
+    clause:
+      kind: any_of
+      clauses:
+        - { kind: threshold, expr: "STJ_V5_mV", op: "<=", value: -0.20 }
+        - { kind: threshold, expr: "STJ_V6_mV", op: "<=", value: -0.20 }
+        - { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 }
+        - { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 }
+
+  - name: Inferior_Subendocardial
+    manual_page: 78
+    description: >
+      Max STJ of II or aVF below -0.10 mV (frontal threshold).
+    clause:
+      kind: any_of
+      clauses:
+        - { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.10 }
+        - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.10 }
+
+  - name: Generalized_ST_Depression
+    manual_page: 78
+    description: >
+      "More sensitive" general test (§3.7.2.12.1 last paragraph). STDEP true
+      if at least two of the non-excluded leads show STJ <= -0.10 mV. Excluded
+      leads: aVR, III, V1, V2, V3 per the manual. (We do not apply the extra
+      V4 exclusion for RBBB here because the disease-level exclusions list
+      already excludes LBBB/WPW/Paced; RBBB-based tighter gating is best
+      handled in the post-pass.)
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, note: "Lead I STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead II STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead aVL STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead aVF STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead V4 STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_V4_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead V5 STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_V5_mV", op: "<=", value: -0.10 } }
+        - { points: 1, note: "Lead V6 STJ <= -0.10 mV",
+            when: { kind: threshold, expr: "STJ_V6_mV", op: "<=", value: -0.10 } }
+
+  - name: Junctional_ST_Depression
+    manual_page: 79
+    description: >
+      §3.7.2.12.3: STJ < -0.10 mV in >= 2 leads with upsloping ST (STM > STJ),
+      excluding aVR, V1, V2, V3.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, note: "I: STJ <= -0.10 AND upsloping (STM > STJ)",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_I_mV - STJ_I_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "II: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_II_mV - STJ_II_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "III: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_III_mV - STJ_III_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "aVL: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_aVL_mV - STJ_aVL_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "aVF: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_aVF_mV - STJ_aVF_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "V4: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_V4_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_V4_mV - STJ_V4_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "V5: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_V5_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_V5_mV - STJ_V5_mV", op: ">", value: 0 },
+            ]}}
+        - { points: 1, note: "V6: STJ <= -0.10 AND upsloping",
+            when: { kind: all_of, clauses: [
+              { kind: threshold, expr: "STJ_V6_mV", op: "<=", value: -0.10 },
+              { kind: threshold, expr: "STM_V6_mV - STJ_V6_mV", op: ">", value: 0 },
+            ]}}

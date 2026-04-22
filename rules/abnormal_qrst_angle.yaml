@@ -1,0 +1,35 @@
+disease: AbnormalQRSTAngle
+manual_source: "12SL Physicians Guide v24, §3.7.2.13.3 p.83"
+description: >
+  Abnormal QRS–T angle (acronym AQRST). The manual states not to run this test
+  if any other T-wave abnormality has already been stated. The test looks for
+  discordant QRS and T axes: absolute difference between QRS and T axes ≥ 60°
+  with T axis < 0° or > 90°. When the test passes, the manual statement is
+  “Abnormal QRS-T angle, consider primary T wave abnormality.”
+manual_departure_notes: |
+  The quantitative axis criteria are taken verbatim from the manual excerpt.
+  Suppression when “any other T wave abnormality” is already present is a
+  statement-level dependency: there is no aggregate “other T abnormality” flag
+  in the feature registry, so orchestration must skip this disease when other
+  T diagnoses have fired. Frontal axes are compared with abs(QRS_axis_deg -
+  T_axis_deg); if the engine ever supplies axes near ±180° with wrap-around,
+  the shorter angular arc should be min(|Δ|, 360−|Δ|) — not implemented here
+  because the manual text uses a planar difference wording.
+exclusions: []
+sex_specific: false
+variants:
+  - name: AQRST_discordant_axes
+    manual_page: 83
+    description: >
+      abs(QRS_axis_deg - T_axis_deg) >= 60 AND (T_axis_deg < 0 OR T_axis_deg > 90).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "abs(QRS_axis_deg - T_axis_deg)"
+          op: ">="
+          value: 60
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "T_axis_deg", op: "<", value: 0 }
+            - { kind: threshold, expr: "T_axis_deg", op: ">", value: 90 }

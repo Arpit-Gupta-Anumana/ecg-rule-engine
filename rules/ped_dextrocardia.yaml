@@ -1,0 +1,23 @@
+disease: PediatricDextrocardia
+manual_source: "12SL Physicians Guide v24, §3.7.3.2 p.87"
+description: >
+  Dextrocardia screen (pediatric). Manual: "The test for Dextrocardia looks for
+  a QRS deflection much greater in right precordial leads as opposed to left
+  lateral leads. Dextrocardia is not detected for adult ECG analysis (age 16
+  and older)."
+manual_departure_notes: |
+  "Much greater" is operationalized per project spec as strict R-amplitude
+  inequalities R_V1 > R_V6 and R_V2 > R_V5 (mV). Numeric ratio thresholds are
+  not stated in the cited manual text.
+exclusions: []
+sex_specific: false
+variants:
+  - name: Dextrocardia_R_right_exceeds_left_proxy
+    manual_page: 87
+    description: "R_V1 > R_V6 AND R_V2 > R_V5 with pediatric age gate (<=15 y)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "R_V1_mV - R_V6_mV", op: ">", value: 0 }
+        - { kind: threshold, expr: "R_V2_mV - R_V5_mV", op: ">", value: 0 }

@@ -1,0 +1,167 @@
+disease: PedEarlyRepolPericarditis
+manual_source: "12SL Physicians Guide v24, §3.7.3.11.2 p.101, §3.7.3.11.3 p.102, §3.7.3.11.4 p.102"
+description: >
+  Pediatric diffuse ST elevation: early repolarization (ST:T ratio low, T upright,
+  no reciprocal depression in aVR; QRS < 120 ms), acute pericarditis (more ST
+  elevation required, QRS < 120 ms), or ST elevation with mechanism undifferentiated
+  when specific criteria are not met.
+exclusions: [WPW, LBBB, RBBB, Paced]
+sex_specific: false
+variants:
+
+  - name: Early_Repolarization_ped
+    manual_page: 101
+    description: >
+      §3.7.3.11.2: ST:T ratio low, T upright, no reciprocal depression. Diffuse
+      STJ >= 0.10 mV in >= 5 leads with T > 0, no reciprocal depression in aVR.
+      QRS < 120 ms. Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 5
+          note: ">= 5 leads with STJ >= 0.10 mV AND upright T (not aVR)"
+          items:
+            - { points: 1, note: "I",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_I_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "II",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_II_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "III",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_III_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "aVL",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_aVL_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "aVF",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_aVF_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V1",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V2",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V3",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V3_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V4",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V4_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V5",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V5_mV", op: ">", value: 0 },
+                ]}}
+            - { points: 1, note: "V6",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V6_mV", op: ">", value: 0 },
+                ]}}
+        - kind: threshold
+          note: "No reciprocal ST depression in aVR"
+          expr: "STJ_aVR_mV"
+          op: ">"
+          value: -0.10
+        - kind: threshold
+          note: "QRS < 120 ms"
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+
+  - name: Acute_Pericarditis_ped
+    manual_page: 102
+    description: >
+      §3.7.3.11.3: More ST elevation required, QRS < 120 ms. Diffuse STJ >= 0.15 mV
+      in >= 5 leads with T > 0. Skip if QRS > 120 ms. Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: threshold
+          note: "QRS < 120 ms (skip if QRS > 120 ms)"
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+        - kind: point_score
+          threshold_positive: 5
+          note: ">= 5 leads with STJ >= 0.15 mV AND upright T (not aVR)"
+          items:
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_I_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_II_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_III_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_aVL_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_aVF_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V3_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V4_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V5_mV", op: ">", value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V6_mV", op: ">", value: 0 }]}}
+
+  - name: ST_elevation_mechanism_unknown_ped
+    manual_page: 102
+    description: >
+      §3.7.3.11.4: ST elevation present but does not meet early repol or pericarditis
+      criteria. STJ > 0.10 mV in >= 2 leads (not aVR). Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          note: ">= 2 leads with STJ > 0.10 mV (aVR excluded)"
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: ">", value: 0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: ">", value: 0.10 } }

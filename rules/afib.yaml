@@ -1,0 +1,41 @@
+disease: AFib
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.6 p.42"
+description: >
+  Atrial fibrillation. Per manual, program requires test 1 OR test 2:
+
+    Test 1:
+      - Irregularly irregular rhythm (RR range > 15% of mean RR)
+      - No regular atrial rhythm detected.
+    Test 2:
+      - atrial rate > 400/min.
+
+  Test 1 requires RR-variance features we do not extract from waveforms.
+  Test 2 (atrial rate > 400 bpm) is a true waveform-derived criterion but
+  fires rarely because PTB-XL's computed atrial rate seldom exceeds 400.
+
+  The previous version used rhythm_afib_flag (derived from the SCP code
+  "AFIB") as a proxy. That was circular — the SCP code IS the ground truth
+  label, so the rule was reading back the answer. Removed.
+manual_departure_notes: |
+  Test 1 (RR irregularity) is not implementable from our current feature
+  set. It requires: (a) RR_range / RR_mean > 0.15 (range of RR intervals
+  exceeding 15% of mean), and (b) no regular atrial rhythm detected. Both
+  require beat-by-beat RR intervals, which our waveform extractor does not
+  produce.
+
+  Test 2 (atrial rate > 400 bpm) is faithfully encoded. In practice,
+  PTB-XL's atrial_rate_bpm rarely reaches 400 because the dataset stores
+  ventricular rate and the atrial rate field is often missing or proxied.
+
+  Once an RR-variance feature is added to the registry, Test 1 can be
+  implemented properly.
+exclusions: [VentricularPacing]
+variants:
+  - name: AFib_AtrialRate_gt400
+    manual_page: 42
+    description: "Test 2: atrial rate > 400 bpm (manual §3.7.1.1.6)."
+    clause:
+      kind: threshold
+      expr: "atrial_rate_bpm"
+      op: ">"
+      value: 400

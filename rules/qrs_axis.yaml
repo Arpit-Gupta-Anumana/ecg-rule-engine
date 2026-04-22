@@ -1,0 +1,69 @@
+disease: QRSAxis
+manual_source: "12SL Physicians Guide v24, §3.7.2.4 p.58"
+description: >
+  Frontal-plane QRS axis classification. The manual defines five named axis
+  statements with exact numeric ranges; each becomes one variant.
+  Tests are skipped if WPW is stated.
+manual_departure_notes: |
+  The manual's Indeterminate Axis (INDAX) is defined morphologically:
+  "|R - S| < 50 uV or |R - S| < 10% of total QRS deflection in leads I, II,
+  and III simultaneously". We encode the amplitude-threshold half of that
+  definition; the 10%-of-total-deflection half is encoded as well via an
+  auxiliary expression. Both must be true in I AND II AND III.
+exclusions: [WPW]
+variants:
+  - name: Rightward_axis
+    manual_page: 58
+    description: "QRS axis in 90..109 degrees."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 90  }
+        - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: 109 }
+
+  - name: Right_axis_deviation
+    manual_page: 58
+    description: "QRS axis in 110..180 degrees."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 110 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: 180 }
+
+  - name: Right_superior_axis_deviation
+    manual_page: 58
+    description: >
+      QRS axis in 181..270 degrees (equivalent to -90..-179 if the parser
+      reports signed axis; we support both conventions via any_of).
+    clause:
+      kind: any_of
+      clauses:
+        - kind: all_of
+          clauses:
+            - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 181 }
+            - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: 270 }
+        - kind: all_of
+          clauses:
+            - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: -179 }
+            - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: -90  }
+
+  - name: Left_axis_deviation
+    manual_page: 58
+    description: "QRS axis in -30..-89 degrees."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: -30 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: -89 }
+
+  - name: Indeterminate_axis
+    manual_page: 58
+    description: >
+      Essentially equiphasic QRS in leads I, II, AND III: |R - S| < 0.05 mV
+      in each of I, II, III (amplitude half of the manual's INDAX definition).
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "abs(R_I_mV - S_I_mV)",   op: "<", value: 0.05 }
+        - { kind: threshold, expr: "abs(R_II_mV - S_II_mV)", op: "<", value: 0.05 }
+        - { kind: threshold, expr: "abs(R_III_mV - S_III_mV)", op: "<", value: 0.05 }

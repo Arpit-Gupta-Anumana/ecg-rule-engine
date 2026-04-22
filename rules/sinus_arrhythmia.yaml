@@ -1,0 +1,30 @@
+disease: SinusArrhythmia
+manual_source: "12SL Physicians Guide v24, §3.7.1.2.2.1 p.45"
+description: >
+  Sinus arrhythmia (SAR) and marked sinus arrhythmia (MSAR). Manual: SAR requires
+  the range of RR intervals to be 20–39% of the average RR interval; MSAR
+  requires the range to be 40% or greater of the average RR.
+manual_departure_notes: |
+  RR interval range as a fraction of mean RR is not in the feature registry.
+  Variants are stubs with always-false clauses until an RR-range or equivalent
+  variability feature is added.
+variants:
+  - name: SAR_stub
+    manual_page: 45
+    description: "STUB: SAR (RR range 20–39% of mean RR) not computable from registry."
+    clause:
+      kind: threshold
+      note: "STUB - RR range / mean RR not available"
+      expr: "ventricular_rate_bpm"
+      op: "<"
+      value: -999
+
+  - name: MSAR_stub
+    manual_page: 45
+    description: "STUB: MSAR (RR range ≥ 40% of mean RR) not computable from registry."
+    clause:
+      kind: threshold
+      note: "STUB - RR range / mean RR not available"
+      expr: "ventricular_rate_bpm"
+      op: "<"
+      value: -999

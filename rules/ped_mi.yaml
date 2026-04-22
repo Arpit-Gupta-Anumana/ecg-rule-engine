@@ -1,0 +1,102 @@
+disease: PediatricQWaveMI
+manual_source: "12SL Physicians Guide v24, §3.7.3.10 pp.96–99"
+description: >
+  Pediatric Q-wave infarct patterns. Manual: septal and anterior MI are "Not
+  diagnosed by pediatric program." Lateral MI: "Deep, wide Q waves with large
+  Q:R ratio in at least three of leads I, aVL, V4, V5, V6." Inferior MI:
+  "Deep, wide Q wave with large Q:R ratio in lead aVF," with skip if RBBB or
+  hypertrophy detected.
+manual_departure_notes: |
+  Septal and anterior MI are not implemented as rule variants per the manual’s
+  pediatric-program exclusion.
+
+  "Deep, wide Q" with large Q:R is operationalized with project-unified numeric
+  cutoffs (ESC/AHA/HRS universal-definition style Q waves; Thygesen et al.,
+  Fourth Universal Definition of Myocardial Infarction, JACC / Eur Heart J
+  2018): Q_ms >= 30, Q_mV >= 0.1, Q:R >= 0.25 with R_mV >= 0.1 for the ratio
+  limb. These numbers are not reproduced as GE proprietary thresholds.
+
+  Inferior skip for "hypertrophy" is encoded using rvh_flag only (registry
+  lacks a dedicated lvh_flag); LVH overlap may still occur.
+
+  Lateral MI requires >= 3 of 5 leads (I, aVL, V4, V5, V6) to satisfy the
+  combined Q-wave criterion (manual: at least three of these leads).
+exclusions: []
+sex_specific: false
+variants:
+  - name: Lateral_MI_ped
+    manual_page: 97
+    description: >
+      Significant Q (>=30 ms, >=0.1 mV, Q:R>=0.25) in >= 3 of I, aVL, V4, V5, V6;
+      age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 3
+          items:
+            - points: 1
+              note: "Lead I: deep wide Q with large Q:R"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_I_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_I_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_I_mV - 0.25 * R_I_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_I_mV", op: ">=", value: 0.1 }
+            - points: 1
+              note: "Lead aVL"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_aVL_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_aVL_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_aVL_mV - 0.25 * R_aVL_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_aVL_mV", op: ">=", value: 0.1 }
+            - points: 1
+              note: "Lead V4"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V4_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_V4_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_V4_mV - 0.25 * R_V4_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_V4_mV", op: ">=", value: 0.1 }
+            - points: 1
+              note: "Lead V5"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V5_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_V5_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_V5_mV - 0.25 * R_V5_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_V5_mV", op: ">=", value: 0.1 }
+            - points: 1
+              note: "Lead V6"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "Q_V6_ms", op: ">=", value: 30 }
+                  - { kind: threshold, expr: "Q_V6_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "Q_V6_mV - 0.25 * R_V6_mV", op: ">=", value: 0.0 }
+                  - { kind: threshold, expr: "R_V6_mV", op: ">=", value: 0.1 }
+
+  - name: Inferior_MI_ped
+    manual_page: 98
+    description: >
+      Significant Q in aVF (same combined criterion); skip if RBBB or RVH flag;
+      age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Skip if RBBB (manual)", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if hypertrophy — RVH flag proxy", expr: "rvh_flag", op: "<", value: 1 }
+        - kind: all_of
+          note: "aVF: Q >= 30 ms, >= 0.1 mV, Q:R >= 0.25"
+          clauses:
+            - { kind: threshold, expr: "Q_aVF_ms", op: ">=", value: 30 }
+            - { kind: threshold, expr: "Q_aVF_mV", op: ">=", value: 0.1 }
+            - { kind: threshold, expr: "Q_aVF_mV - 0.25 * R_aVF_mV", op: ">=", value: 0.0 }
+            - { kind: threshold, expr: "R_aVF_mV", op: ">=", value: 0.1 }

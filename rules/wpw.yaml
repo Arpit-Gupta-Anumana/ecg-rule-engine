@@ -1,0 +1,53 @@
+disease: WPW
+manual_source: "12SL Physicians Guide v24, §3.7.2.2 p.56"
+description: >
+  Wolff-Parkinson-White pre-excitation. The manual specifies:
+    - delta waves in >= 3 of 12 leads
+    - P axis between -30 and 120 degrees
+    - test is skipped if rhythm is AF, AFL, or no P wave is present.
+  Two sub-types (A / B) depend on the polarity of QRS in V1 / V2.
+manual_departure_notes: |
+  Our feature set does not compute a per-lead "delta wave present" Boolean.
+  The manual relies on a morphology detector we don't have. We fall back to
+  the classical textbook PR-interval proxy: short PR (< 120 ms) with
+  widened QRS (>= 110 ms) and normal P axis (-30 to 120 deg).
+
+  The previous version used wpw_flag (derived from SCP code "WPW") as the
+  primary variant. That was circular — the SCP code IS the ground truth
+  label. Removed.
+
+  The PR proxy will have lower sensitivity (misses subtle pre-excitation
+  where PR is borderline) and lower specificity (fires on junctional
+  rhythms with short PR + wide QRS). Delta-wave detection from waveform
+  morphology is needed for a proper implementation.
+exclusions: []
+variants:
+  - name: WPW_PR_proxy
+    manual_page: 56
+    description: >
+      Classical textbook pattern: short PR (< 120 ms) with wide QRS
+      (>= 110 ms) and normal P axis (-30 to 120 deg). Operationalization
+      of the manual's delta-wave + short PR criteria.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Short PR interval < 120 ms"
+          expr: "PR_ms"
+          op: "<"
+          value: 120
+        - kind: threshold
+          note: "Wide QRS >= 110 ms (pre-excitation widening)"
+          expr: "QRS_ms"
+          op: ">="
+          value: 110
+        - kind: threshold
+          note: "P axis >= -30 deg"
+          expr: "P_axis_deg"
+          op: ">="
+          value: -30
+        - kind: threshold
+          note: "P axis <= 120 deg"
+          expr: "P_axis_deg"
+          op: "<="
+          value: 120

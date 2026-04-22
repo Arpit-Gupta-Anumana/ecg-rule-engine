@@ -1,0 +1,39 @@
+disease: AtrialFlutter
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.2 p.40"
+description: >
+  Atrial flutter. The manual specifies:
+    "The program must detect an atrial rate from 200 to 350 bpm for adults,
+    and 300 to 350 bpm for pediatrics."
+manual_departure_notes: |
+  The authoritative GE detector uses sawtooth flutter-wave morphology which
+  we cannot replicate from global features. Our only implementable criterion
+  is atrial_rate_bpm in the 200-350 range.
+
+  The previous version included an AFL_via_ge_flag variant that used
+  rhythm_aflutter_flag (derived from SCP code "AFLT"). That was circular —
+  the SCP code IS the ground truth label, so it was reading back the answer.
+  Removed.
+
+  Atrial tachycardia in the same rate range will be a false positive for
+  this rule — we cannot distinguish flutter from tachycardia without
+  morphology analysis.
+variants:
+  - name: AFL_atrial_rate_adult
+    manual_page: 40
+    description: "Atrial rate 200-350 bpm (adult band, age >= 18)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "age_years",       op: ">=", value: 18  }
+        - { kind: threshold, expr: "atrial_rate_bpm", op: ">=", value: 200 }
+        - { kind: threshold, expr: "atrial_rate_bpm", op: "<=", value: 350 }
+
+  - name: AFL_atrial_rate_pediatric
+    manual_page: 40
+    description: "Atrial rate 300-350 bpm (pediatric band, age < 18)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "age_years",       op: "<",  value: 18  }
+        - { kind: threshold, expr: "atrial_rate_bpm", op: ">=", value: 300 }
+        - { kind: threshold, expr: "atrial_rate_bpm", op: "<=", value: 350 }

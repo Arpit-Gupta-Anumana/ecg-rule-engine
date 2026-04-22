@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+venv/
+*.so
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Data files (large / private)
+data/
+*.csv
+*.parquet
+*.h5
+*.hdf5
+*.wfdb
+*.dat
+*.hea
+*.xml
+
+# But keep example and report CSVs tracked
+!examples/*.csv
+!reports/*.csv
+
+# PDF (proprietary manual)
+*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Extracted text (can be regenerated)
+extracted/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/

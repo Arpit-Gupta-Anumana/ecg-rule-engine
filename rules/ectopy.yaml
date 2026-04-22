@@ -1,0 +1,26 @@
+disease: Ectopy
+manual_source: "12SL Physicians Guide v24, §3.7.1.2.2.5 pp.49–51"
+description: >
+  Premature ventricular complexes (PVC) and premature atrial complexes (PAC).
+  Manual: PVC requires at least one premature, ectopic-shaped QRS with QRS duration
+  > 120 ms and no fusion beats. PAC requires at least one premature, normally
+  shaped QRS with a preceding P wave.
+manual_departure_notes: |
+  PVC and PAC detection in the manual depends on beat-by-beat timing, morphology
+  classification, fusion-beat exclusion, and P-wave association before each
+  premature beat. The feature registry exposes only global interval and axis
+  measures; no per-beat prematurity or morphology flags are available. No
+  faithful implementation is possible from registry features alone.
+
+  A single always-false stub clause is provided so downstream pipelines can
+  reference the disease block without implying detection capability.
+variants:
+  - name: PVC_stub
+    manual_page: 49
+    description: "STUB: PVC per manual cannot be detected from global features; clause always false."
+    clause:
+      kind: threshold
+      note: "STUB - requires beat-by-beat morphology and prematurity not available"
+      expr: "ventricular_rate_bpm"
+      op: "<"
+      value: -999

@@ -1,0 +1,37 @@
+disease: NonspecificSTDepression
+manual_source: "12SL Physicians Guide v24, §3.7.2.12.2 p.79"
+description: >
+  Nonspecific ST abnormality from sensitive ST-segment analysis (acronym NST in
+  the manual for this subsection). The manual states the ST segment is analyzed
+  with even more sensitivity and that if the pattern occurs in at least two
+  leads, nonspecific ST abnormality is stated.
+manual_departure_notes: |
+  The manual is qualitative (“even more sensitivity”). We operationalize it as
+  STJ depression ≥ 0.05 mV (50 µV below baseline) in at least two leads, which
+  is more sensitive than the −0.10 mV subendocardial injury cutoffs in
+  §3.7.2.12.1. Lead aVR is excluded (reciprocal patterns and baseline drift).
+  Cross-rule interactions from §3.7.2.12 (e.g. suppression when injury is
+  present) are not encoded per-file; use the post-pass layer.
+exclusions: []
+sex_specific: false
+variants:
+  - name: NST_STJ_below_minus_0p05_two_leads_no_aVR
+    manual_page: 79
+    description: >
+      STJ < −0.05 mV in at least two of I, II, III, aVL, aVF, V1–V6 (aVR
+      excluded).
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: "<", value: -0.05 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: "<", value: -0.05 } }

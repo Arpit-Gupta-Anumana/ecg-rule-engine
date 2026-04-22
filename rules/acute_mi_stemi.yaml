@@ -1,0 +1,284 @@
+disease: AcuteMISTEMI
+manual_source: "12SL Physicians Guide v24, §3.7.2.15 p.84"
+description: >
+  Acute MI / STEMI aggregation (acronyms STEMI, CRVI). The manual defines acute
+  MI through several statement-level disjunctions involving “possibly acute”
+  infarct language, ST-elevation injury wording, injury pattern plus age-
+  undetermined infarct, etc. This engine encodes a direct morphologic proxy
+  recommended for the project: concurrent (a) regional ST-elevation injury
+  pattern meeting the same STEMI criteria as STElevationInjury and (b) Q-wave
+  evidence per QWaveMI.
+manual_departure_notes: |
+  The manual’s full Boolean OR over natural-language statements (including
+  screening-mode suppressions and “would have been made” clauses) is not
+  reproducible feature-by-feature. STEMI tier thresholds and reciprocal rules are
+  identical to st_elevation_injury.yaml (2012 ACC/AHA values in tier 1). Q-wave
+  logic is duplicated from q_wave_mi.yaml (ESC/AHA/HRS universal Q-wave cutoffs
+  as documented there). Disease-level exclusions match STElevationInjury
+  (LBBB/WPW/Paced) so the injury arm is not applied when those patterns are
+  flagged; Q-wave rules in QWaveMI also exclude WPW/LBBB at disease level — the
+  combined clause remains a best-effort acute infarct surfacer.
+exclusions: [LBBB, WPW, Paced]
+sex_specific: true
+variants:
+  - name: AcuteMI_concurrent_STEMI_and_Qwave
+    manual_page: 84
+    description: >
+      Any regional STEMI pattern (Anterior, Lateral, or Inferior variants from
+      §3.7.2.11.1 encoding) AND pathologic Q waves in any QWaveMI territory.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: any_of
+          note: "Regional STEMI / injury (st_elevation_injury.yaml)"
+          clauses:
+            - kind: any_of
+              note: "Anterior"
+              clauses:
+                - kind: point_score
+                  note: "Tier 1: high-threshold anterior elevation"
+                  threshold_positive: 2
+                  items:
+                    - { points: 1, note: "V1 STJ >= 0.15 mV",
+                        when: { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, note: "V2 STJ >= sex threshold (M:0.20, F:0.15)",
+                        when: { kind: threshold, expr: "STJ_V2_mV", op: ">=",
+                                value: { M: 0.20, F: 0.15 } } }
+                    - { points: 1, note: "V3 STJ >= sex threshold (M:0.20, F:0.15)",
+                        when: { kind: threshold, expr: "STJ_V3_mV", op: ">=",
+                                value: { M: 0.20, F: 0.15 } } }
+                    - { points: 1, note: "V4 STJ >= 0.15 mV",
+                        when: { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.15 } }
+                - kind: all_of
+                  note: "Tier 2: moderate anterior + inferior reciprocal"
+                  clauses:
+                    - kind: point_score
+                      threshold_positive: 2
+                      items:
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.10 } }
+                    - kind: any_of
+                      clauses:
+                        - { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.05 }
+                        - { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.05 }
+                        - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.05 }
+            - kind: any_of
+              note: "Lateral"
+              clauses:
+                - kind: point_score
+                  note: "Tier 1: high-threshold lateral"
+                  threshold_positive: 2
+                  items:
+                    - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.15 } }
+                - kind: all_of
+                  note: "Tier 2: moderate lateral + inferior reciprocal"
+                  clauses:
+                    - kind: point_score
+                      threshold_positive: 2
+                      items:
+                        - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.10 } }
+                    - kind: any_of
+                      clauses:
+                        - { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.05 }
+                        - { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.05 }
+                        - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.05 }
+            - kind: any_of
+              note: "Inferior"
+              clauses:
+                - kind: point_score
+                  note: "Tier 1: high-threshold inferior"
+                  threshold_positive: 2
+                  items:
+                    - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.15 } }
+                    - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.15 } }
+                - kind: all_of
+                  note: "Tier 2: moderate inferior + I/aVL reciprocal"
+                  clauses:
+                    - kind: point_score
+                      threshold_positive: 2
+                      items:
+                        - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.10 } }
+                        - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.10 } }
+                    - kind: any_of
+                      clauses:
+                        - { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 }
+                        - { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 }
+        - kind: any_of
+          note: "Q-wave MI in any region (q_wave_mi.yaml)"
+          clauses:
+            - kind: any_of
+              note: "Septal_MI"
+              clauses:
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V1_ms", op: ">=", value: 30 }
+                    - { kind: threshold, expr: "Q_V1_mV", op: ">=", value: 0.1 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V2_ms", op: ">=", value: 30 }
+                    - { kind: threshold, expr: "Q_V2_mV", op: ">=", value: 0.1 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V1_mV - 0.25 * R_V1_mV", op: ">=", value: 0.0 }
+                    - { kind: threshold, expr: "R_V1_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "Q_V1_ms", op: ">=", value: 20 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V2_mV - 0.25 * R_V2_mV", op: ">=", value: 0.0 }
+                    - { kind: threshold, expr: "R_V2_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "Q_V2_ms", op: ">=", value: 20 }
+            - kind: any_of
+              note: "Anterior_MI"
+              clauses:
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V3_ms", op: ">=", value: 30 }
+                    - { kind: threshold, expr: "Q_V3_mV", op: ">=", value: 0.1 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V4_ms", op: ">=", value: 30 }
+                    - { kind: threshold, expr: "Q_V4_mV", op: ">=", value: 0.1 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V3_mV - 0.25 * R_V3_mV", op: ">=", value: 0.0 }
+                    - { kind: threshold, expr: "R_V3_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "Q_V3_ms", op: ">=", value: 20 }
+                - kind: all_of
+                  clauses:
+                    - { kind: threshold, expr: "Q_V4_mV - 0.25 * R_V4_mV", op: ">=", value: 0.0 }
+                    - { kind: threshold, expr: "R_V4_mV", op: ">=", value: 0.1 }
+                    - { kind: threshold, expr: "Q_V4_ms", op: ">=", value: 20 }
+            - kind: point_score
+              note: "Lateral_MI (>=2 lateral leads)"
+              threshold_positive: 2
+              items:
+                - points: 1
+                  when:
+                    kind: any_of
+                    clauses:
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_I_ms", op: ">=", value: 30 }
+                          - { kind: threshold, expr: "Q_I_mV", op: ">=", value: 0.1 }
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_I_mV - 0.25 * R_I_mV", op: ">=", value: 0.0 }
+                          - { kind: threshold, expr: "R_I_mV", op: ">=", value: 0.1 }
+                          - { kind: threshold, expr: "Q_I_ms", op: ">=", value: 20 }
+                - points: 1
+                  when:
+                    kind: any_of
+                    clauses:
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_aVL_ms", op: ">=", value: 30 }
+                          - { kind: threshold, expr: "Q_aVL_mV", op: ">=", value: 0.1 }
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_aVL_mV - 0.25 * R_aVL_mV", op: ">=", value: 0.0 }
+                          - { kind: threshold, expr: "R_aVL_mV", op: ">=", value: 0.1 }
+                          - { kind: threshold, expr: "Q_aVL_ms", op: ">=", value: 20 }
+                - points: 1
+                  when:
+                    kind: any_of
+                    clauses:
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_V5_ms", op: ">=", value: 30 }
+                          - { kind: threshold, expr: "Q_V5_mV", op: ">=", value: 0.1 }
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_V5_mV - 0.25 * R_V5_mV", op: ">=", value: 0.0 }
+                          - { kind: threshold, expr: "R_V5_mV", op: ">=", value: 0.1 }
+                          - { kind: threshold, expr: "Q_V5_ms", op: ">=", value: 20 }
+                - points: 1
+                  when:
+                    kind: any_of
+                    clauses:
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_V6_ms", op: ">=", value: 30 }
+                          - { kind: threshold, expr: "Q_V6_mV", op: ">=", value: 0.1 }
+                      - kind: all_of
+                        clauses:
+                          - { kind: threshold, expr: "Q_V6_mV - 0.25 * R_V6_mV", op: ">=", value: 0.0 }
+                          - { kind: threshold, expr: "R_V6_mV", op: ">=", value: 0.1 }
+                          - { kind: threshold, expr: "Q_V6_ms", op: ">=", value: 20 }
+            - kind: all_of
+              note: "Inferior_MI"
+              clauses:
+                - kind: threshold
+                  expr: "Q_II_ms"
+                  op: ">="
+                  value: 20
+                - kind: any_of
+                  clauses:
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "Q_II_ms", op: ">=", value: 30 }
+                        - { kind: threshold, expr: "Q_II_mV", op: ">=", value: 0.1 }
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "Q_aVF_ms", op: ">=", value: 30 }
+                        - { kind: threshold, expr: "Q_aVF_mV", op: ">=", value: 0.1 }
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "Q_II_mV - 0.25 * R_II_mV", op: ">=", value: 0.0 }
+                        - { kind: threshold, expr: "R_II_mV", op: ">=", value: 0.1 }
+                        - { kind: threshold, expr: "Q_II_ms", op: ">=", value: 20 }
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "Q_aVF_mV - 0.25 * R_aVF_mV", op: ">=", value: 0.0 }
+                        - { kind: threshold, expr: "R_aVF_mV", op: ">=", value: 0.1 }
+                        - { kind: threshold, expr: "Q_aVF_ms", op: ">=", value: 20 }
+            - kind: all_of
+              note: "Posterior_MI (mirror + STD + upright T; q_wave_mi variant)"
+              clauses:
+                - kind: threshold
+                  expr: "QRS_ms"
+                  op: "<"
+                  value: 120
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">"
+                  value: 30
+                - kind: threshold
+                  expr: "rbbb_flag"
+                  op: "<"
+                  value: 1
+                - kind: threshold
+                  expr: "irbbb_flag"
+                  op: "<"
+                  value: 1
+                - kind: threshold
+                  expr: "rvh_flag"
+                  op: "<"
+                  value: 1
+                - kind: any_of
+                  clauses:
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "R_V1_mV - S_V1_mV", op: ">", value: 0 }
+                        - { kind: threshold, expr: "R_V2_mV - S_V2_mV", op: ">", value: 0 }
+                    - kind: all_of
+                      clauses:
+                        - { kind: threshold, expr: "R_V2_mV - S_V2_mV", op: ">", value: 0 }
+                        - { kind: threshold, expr: "R_V3_mV - S_V3_mV", op: ">", value: 0 }
+                - kind: any_of
+                  clauses:
+                    - { kind: threshold, expr: "STJ_V1_mV", op: "<=", value: -0.05 }
+                    - { kind: threshold, expr: "STJ_V2_mV", op: "<=", value: -0.05 }
+                - kind: any_of
+                  clauses:
+                    - { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 }
+                    - { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 }

@@ -1,0 +1,70 @@
+disease: PediatricQRSAxis
+manual_source: "12SL Physicians Guide v24, §3.7.3.4 p.88"
+description: >
+  Pediatric frontal-plane QRS axis. Manual: "Right axis deviation requires QRS
+  axis >= right axis limit for age. Left axis deviation requires QRS axis between
+  left axis limit for age and -89 degrees. Northwest axis requires age >= 1 month,
+  QRS axis between 181 and 270 degrees. Indeterminate axis requires abs(R-S) <
+  50 µV in I, II, III."
+manual_departure_notes: |
+  Age-specific RAD/LAD limits are referenced qualitatively in the manual but
+  numeric age-stratified axis limits were not supplied in the project tables.
+  Operationalization follows common pediatric ECG teaching cutoffs:
+    - RAD: QRS_axis_deg >= 120 (e.g. Park, Pediatric Cardiology for Practitioners;
+      Zeigler, Pediatric Electrocardiography — rightward deviation in children
+      often discussed around +120° for non-neonatal interpretation).
+    - LAD: QRS_axis_deg <= -30 and >= -89 (mirrors adult LAD range in the same
+      Guide’s adult axis section; pediatric leftward limits vary by age in
+      primary literature).
+
+  RAD applies only when age >= ~1 month (manual requires age for northwest;
+  same month gate applied to RAD per project spec): age_years >= 1/12.
+
+  Northwest axis: 181–270 deg and age >= 1 month (manual numeric range quoted).
+
+  Indeterminate: |R−S| < 50 µV = 0.05 mV in I, II, and III (manual amplitude
+  threshold); R and S are parsed as magnitude features per lead.
+exclusions: []
+sex_specific: false
+variants:
+  - name: Right_axis_deviation_ped
+    manual_page: 88
+    description: "QRS axis >= 120 deg; age >= ~1 month and <= 15 y (literature RAD cutoff)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Approx. 1 month lower bound", expr: "age_years", op: ">=", value: 0.0833333333 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 120 }
+
+  - name: Left_axis_deviation_ped
+    manual_page: 88
+    description: "QRS axis between -89 and -30 deg (literature LAD cutoff); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: -30 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: -89 }
+
+  - name: Northwest_axis_ped
+    manual_page: 88
+    description: "QRS axis 181–270 deg; age >= ~1 month and <= 15 y (manual axis range)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Approx. 1 month lower bound", expr: "age_years", op: ">=", value: 0.0833333333 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 181 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: "<=", value: 270 }
+
+  - name: Indeterminate_axis_ped
+    manual_page: 88
+    description: "|R−S| < 0.05 mV in leads I, II, and III; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "abs(R_I_mV - S_I_mV)",   op: "<", value: 0.05 }
+        - { kind: threshold, expr: "abs(R_II_mV - S_II_mV)",  op: "<", value: 0.05 }
+        - { kind: threshold, expr: "abs(R_III_mV - S_III_mV)", op: "<", value: 0.05 }

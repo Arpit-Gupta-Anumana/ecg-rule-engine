@@ -1,0 +1,35 @@
+disease: Pacing
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.1 p.40"
+description: >
+  Paced rhythm patterns by spike placement: APR (spikes before P), VPR
+  (before QRS), ASVPR (before QRS after non-paced atrial activity), AVDPR
+  (before P and QRS).
+
+  Detection requires identifying pacing spikes in the raw waveform and
+  localizing them relative to P and QRS complexes. Our waveform extractor
+  does not perform spike detection.
+manual_departure_notes: |
+  The previous version used paced_flag (derived from SCP code "PACE") as a
+  proxy. That was circular — the SCP code IS the ground truth label, so the
+  rule was reading back the answer. Removed.
+
+  Pacing spike detection requires high-frequency analysis (spikes are
+  typically 0.5-2 ms duration) that is not captured at PTB-XL's 500 Hz
+  sampling rate or in our smoothed/delineated features. This rule is
+  therefore a stub until a spike-detection feature is added.
+
+  Spike subtypes (APR, VPR, ASVPR, AVDPR) require further localization
+  that is beyond our current pipeline.
+exclusions: []
+variants:
+  - name: Paced_stub
+    manual_page: 40
+    description: >
+      STUB — pacing spike detection not available from waveform features.
+      Always evaluates false.
+    clause:
+      kind: threshold
+      note: "STUB - requires pacing spike detection not available"
+      expr: "ventricular_rate_bpm"
+      op: "<"
+      value: -999

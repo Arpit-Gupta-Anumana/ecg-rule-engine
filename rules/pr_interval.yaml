@@ -1,0 +1,45 @@
+disease: PRInterval
+manual_source: "12SL Physicians Guide v24, §3.7.1.2.2.3 p.45"
+description: >
+  PR interval modifiers with sinus rhythm. Short PR (SPR): sinus rhythm and
+  PR interval 110 ms or less; not reported if WPW detected. First-degree AV
+  block (FAV): sinus rhythm and PR interval 210 ms or longer.
+manual_departure_notes: |
+  "Sinus rhythm" is approximated with rhythm_sinus_flag from the registry
+  (device/classifier output), not independent P-morphology review.
+
+  SPR exclusion when WPW is detected uses wpw_flag >= 1 as "WPW detected."
+variants:
+  - name: ShortPR
+    manual_page: 45
+    description: "SPR: sinus rhythm (flag), PR ≤ 110 ms, WPW not detected."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "rhythm_sinus_flag"
+          op: ">="
+          value: 1
+        - kind: threshold
+          expr: "PR_ms"
+          op: "<="
+          value: 110
+        - kind: threshold
+          expr: "wpw_flag"
+          op: "<"
+          value: 1
+
+  - name: FirstDegreeAVBlock
+    manual_page: 45
+    description: "FAV: sinus rhythm (flag), PR ≥ 210 ms."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "rhythm_sinus_flag"
+          op: ">="
+          value: 1
+        - kind: threshold
+          expr: "PR_ms"
+          op: ">="
+          value: 210

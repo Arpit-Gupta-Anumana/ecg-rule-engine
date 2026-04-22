@@ -1,0 +1,47 @@
+disease: PediatricLVH
+manual_source: "12SL Physicians Guide v24, §3.7.3.9.2 p.95"
+description: >
+  Pediatric left ventricular hypertrophy. Manual: "Criteria examine voltage in
+  V1 and V6. If voltage significantly exceeds, state LVH. LVH with strain if
+  T < -200 µV in >= 2 of V4-V6/I/aVL."
+manual_departure_notes: |
+  "Significantly exceeds" is not quantified in the cited excerpt. Voltage is
+  operationalized as Sokolow-Lyon–style S_V1_mV + R_V6_mV > 4.0 mV, adjusted
+  downward from the adult 3.5–4.0 mV convention for pediatric use (project
+  spec). The 4.0 mV sum is a literature-informed pediatric LVH voltage screen,
+  not a verbatim GE table entry.
+
+  LVH with strain is encoded as T_mV <= -0.20 in >= 2 of leads V4, V5, V6, I,
+  and aVL (200 µV = 0.20 mV per manual).
+exclusions: []
+sex_specific: false
+variants:
+  - name: LVH_voltage_Sokolow_proxy_ped
+    manual_page: 95
+    description: "S_V1 + R_V6 > 4.0 mV (pediatric Sokolow-style proxy); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "S_V1_mV + R_V6_mV", op: ">", value: 4.0 }
+
+  - name: LVH_with_strain_ped
+    manual_page: 95
+    description: "T <= -0.20 mV in >= 2 of V4–V6, I, aVL; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - points: 1
+              when: { kind: threshold, expr: "T_V4_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_V5_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_V6_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_I_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_aVL_mV", op: "<=", value: -0.20 }

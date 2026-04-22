@@ -1,0 +1,33 @@
+disease: NonspecificIVCB
+manual_source: "12SL Physicians Guide v24, §3.7.2.8.1.3 p.61"
+description: >
+  Nonspecific intraventricular conduction block (acronym IVCB). The manual
+  states that if QRS duration is > 125 ms and neither RBBB nor LBBB are stated,
+  nonspecific intraventricular conduction block is stated.
+manual_departure_notes: |
+  Fully quantitative per the cited manual excerpt. Bundle-branch “stated” is
+  modelled as the corresponding flags (rbbb_flag / lbbb_flag) being inactive.
+exclusions: []
+sex_specific: false
+variants:
+  - name: IVCB_QRS_wide_no_BBB
+    manual_page: 61
+    description: >
+      QRS_ms > 125 ms with neither RBBB nor LBBB flags active.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "QRS_ms"
+          op: ">"
+          value: 125
+        - kind: threshold
+          note: "RBBB not stated"
+          expr: "rbbb_flag"
+          op: "<"
+          value: 1
+        - kind: threshold
+          note: "LBBB not stated"
+          expr: "lbbb_flag"
+          op: "<"
+          value: 1

@@ -1,0 +1,42 @@
+disease: STElevationMechanismUnknown
+manual_source: "12SL Physicians Guide v24, §3.7.2.11.4 p.75"
+description: >
+  ST elevation with mechanism undifferentiated (acronym SERYR1). The manual
+  states that when pericarditis or early repolarization cannot be stated despite
+  ST elevation, the program identifies ST elevation and suggests early
+  repolarization, pericarditis, or injury as possible mechanisms.
+manual_departure_notes: |
+  The manual does not give numeric ST thresholds for this fallback message;
+  it is inherently contextual on the failure of the pericarditis and early-
+  repolarization classifiers. We operationalize “ST elevation present” as
+  STJ > 0.10 mV in at least two leads, matching the moderate tier used in
+  STElevationInjury (st_elevation_injury.yaml) and the project guidance for
+  this file.   A production stack should only surface this disease after
+  pericarditis_early_repol.yaml and STElevationInjury variants have been
+  evaluated and found negative — that ordering is not enforced inside this
+  clause. Lead aVR is omitted from the STJ point-score list because isolated
+  aVR ST elevation is usually reciprocal rather than a primary “ST elevation”
+  presentation.
+exclusions: []
+sex_specific: false
+variants:
+  - name: SERYR1_STJ_two_leads_over_0p10
+    manual_page: 75
+    description: >
+      At least two leads with STJ > 0.10 mV (1 mm) as a proxy for meaningful ST
+      elevation when specific mechanisms are not classifiable in-rule.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: ">", value: 0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: ">", value: 0.10 } }

@@ -1,0 +1,98 @@
+disease: NonspecificSTElevation
+manual_source: "12SL Physicians Guide v24, §3.7.2.11.5 p.76"
+description: >
+  Nonspecific ST elevation abnormality (acronym NST). The manual states the
+  test is skipped if RBBB, Brugada, or any MI is stated, or QRS duration > 120 ms.
+  The abnormality requires no other ST elevation diagnoses, ST elevation
+  > 50 µV, ST slope from QRS onset to J-point steeper than the ST-segment slope,
+  and T waves that are not tall in at least two of leads I, II, III, aVF, and
+  V3–V6; if true, nonspecific ST abnormality is stated.
+manual_departure_notes: |
+  Departures from the quoted manual logic:
+    • “No other ST elevation abnormalities stated” (injury, Brugada, pericarditis,
+      early repolarization, etc.) requires cross-rule / post-pass suppression;
+      not encoded here.
+    • There is no Brugada_flag or MI_flag in the feature registry; Brugada and
+      MI skips must be enforced by orchestration or clinician flags.
+    • The slope criterion (QRS-onset→J steeper than the ST segment) is not
+      implementable with the current STJ/STM-style features; omitted.
+    • ST elevation > 50 µV is encoded as STJ > 0.05 mV in ≥ 2 leads (lead choice
+      not specified in the excerpt; we use the same lead pool as the T-wave leg).
+    • “T wave not tall” is operationalized with literature-style amplitude caps:
+      |T| ≤ 0.60 mV in limb leads I, II, III, aVF and |T| ≤ 1.0 mV in V3–V6
+      (conservative “not tall” cutoffs aligned with routine ECG atlases, e.g.
+      Surawicz & Knilans, Chou’s Electrocardiography in Clinical Practice, 6th
+      ed., 2008). At least two leads in {I, II, III, aVF, V3, V4, V5, V6} must
+      satisfy the cap (matching the manual’s “any 2 of” wording).
+exclusions: [RBBB]
+sex_specific: false
+variants:
+  - name: NST_ST_elevation_and_nontall_T
+    manual_page: 76
+    description: >
+      QRS ≤ 120 ms; ≥ 2 leads with STJ > 0.05 mV; ≥ 2 leads in I, II, III, aVF,
+      V3–V6 with “not tall” T per amplitude caps.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Manual skip: QRS duration > 120 ms"
+          expr: "QRS_ms"
+          op: "<="
+          value: 120
+        - kind: point_score
+          note: "≥ 2 leads with STJ > 0.05 mV (50 µV)"
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: ">", value: 0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: ">", value: 0.05 } }
+        - kind: point_score
+          note: "≥ 2 leads with non-tall T (|T| ≤ 0.60 mV limb, ≤ 1.0 mV precordial)"
+          threshold_positive: 2
+          items:
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_I_mV)", op: "<=", value: 0.6 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_II_mV)", op: "<=", value: 0.6 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_III_mV)", op: "<=", value: 0.6 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_aVF_mV)", op: "<=", value: 0.6 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_V3_mV)", op: "<=", value: 1.0 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_V4_mV)", op: "<=", value: 1.0 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_V5_mV)", op: "<=", value: 1.0 }
+            - points: 1
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "abs(T_V6_mV)", op: "<=", value: 1.0 }

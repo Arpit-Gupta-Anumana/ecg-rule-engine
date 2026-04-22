@@ -1,0 +1,211 @@
+disease: PedSTDepression
+manual_source: "12SL Physicians Guide v24, §3.7.3.12.1 p.103-104, §3.7.3.12.2 p.105, §3.7.3.12.3 p.105"
+description: >
+  Pediatric ST-segment depression by territory (precordial −200 µV, frontal −100 µV),
+  generalized sensitive pattern, nonspecific ST (STJ < −0.05 mV in >= 2 leads), and
+  junctional upsloping depression (STM > STJ) with age-dependent exclusion of V1–V3
+  when age < 12.
+exclusions: [WPW, LBBB, Paced]
+sex_specific: false
+variants:
+
+  - name: Septal_ST_depression_ped
+    manual_page: 103
+    description: >
+      §3.7.3.12.1: STJ_V1 or STJ_V2 <= −0.20 mV (precordial −200 µV). Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "STJ_V1_mV", op: "<=", value: -0.20 }
+            - { kind: threshold, expr: "STJ_V2_mV", op: "<=", value: -0.20 }
+
+  - name: Anterior_ST_depression_ped
+    manual_page: 103
+    description: "STJ_V3 or STJ_V4 <= −0.20 mV (precordial). Age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "STJ_V3_mV", op: "<=", value: -0.20 }
+            - { kind: threshold, expr: "STJ_V4_mV", op: "<=", value: -0.20 }
+
+  - name: Lateral_ST_depression_ped
+    manual_page: 103
+    description: >
+      STJ_V5 or STJ_V6 <= −0.20 mV, or STJ_I or STJ_aVL <= −0.10 mV (frontal −100 µV).
+      Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "STJ_V5_mV", op: "<=", value: -0.20 }
+            - { kind: threshold, expr: "STJ_V6_mV", op: "<=", value: -0.20 }
+            - { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 }
+            - { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 }
+
+  - name: Inferior_ST_depression_ped
+    manual_page: 103
+    description: "STJ_II or STJ_aVF <= −0.10 mV (frontal). Age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.10 }
+            - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.10 }
+
+  - name: Generalized_ST_depression_ped
+    manual_page: 103
+    description: >
+      >= 2 leads (not aVR, not V1–V3) with STJ <= −0.10 mV (more sensitive test).
+      Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          note: "Leads I, II, III, aVL, aVF, V4–V6"
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: "<=", value: -0.10 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: "<=", value: -0.10 } }
+
+  - name: Nonspecific_ST_ped
+    manual_page: 105
+    description: >
+      §3.7.3.12.2: STJ < −0.05 mV in >= 2 leads (most sensitive; analyze with even more
+      sensitivity). aVR excluded. Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV", op: "<", value: -0.05 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV", op: "<", value: -0.05 } }
+
+  - name: Junctional_ST_depression_ped
+    manual_page: 105
+    description: >
+      §3.7.3.12.3: STJ < −0.10 mV AND upsloping (STM > STJ) in >= 2 leads; skip aVR.
+      For age < 12, also skip V1–V3. Age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - kind: all_of
+              note: "Age < 12: exclude aVR and V1–V3"
+              clauses:
+                - { kind: threshold, expr: "age_years", op: "<", value: 12 }
+                - kind: point_score
+                  threshold_positive: 2
+                  items:
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_I_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_I_mV - STJ_I_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_II_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_II_mV - STJ_II_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_III_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_III_mV - STJ_III_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_aVL_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_aVL_mV - STJ_aVL_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_aVF_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_aVF_mV - STJ_aVF_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V4_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V4_mV - STJ_V4_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V5_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V5_mV - STJ_V5_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V6_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V6_mV - STJ_V6_mV", op: ">", value: 0 },
+                        ]}}
+            - kind: all_of
+              note: "Age >= 12: exclude aVR only"
+              clauses:
+                - { kind: threshold, expr: "age_years", op: ">=", value: 12 }
+                - kind: point_score
+                  threshold_positive: 2
+                  items:
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_I_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_I_mV - STJ_I_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_II_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_II_mV - STJ_II_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_III_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_III_mV - STJ_III_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_aVL_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_aVL_mV - STJ_aVL_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_aVF_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_aVF_mV - STJ_aVF_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V1_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V1_mV - STJ_V1_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V2_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V2_mV - STJ_V2_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V3_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V3_mV - STJ_V3_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V4_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V4_mV - STJ_V4_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V5_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V5_mV - STJ_V5_mV", op: ">", value: 0 },
+                        ]}}
+                    - { points: 1, when: { kind: all_of, clauses: [
+                          { kind: threshold, expr: "STJ_V6_mV", op: "<", value: -0.10 },
+                          { kind: threshold, expr: "STM_V6_mV - STJ_V6_mV", op: ">", value: 0 },
+                        ]}}

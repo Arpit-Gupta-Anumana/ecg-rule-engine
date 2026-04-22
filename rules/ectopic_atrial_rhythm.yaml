@@ -1,0 +1,167 @@
+disease: EctopicAtrialRhythm
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.3 p.40"
+description: >
+  Ectopic atrial rhythm family. Manual: P axis less than −30° or greater than
+  120° (pediatrics: P axis less than −20° or greater than 100°). EABRAD atrial
+  rate < 60; EAR 60–100; EATACH > 100. Requirements include excluding atrial
+  flutter and 2nd degree AV block per manual context.
+manual_departure_notes: |
+  Second-degree AV block (Mobitz I/II) is not represented in the feature registry;
+  no clause excludes it. Atrial flutter is excluded via rhythm_aflutter_flag
+  where available.
+
+  Abnormal P-axis thresholds are verbatim from the manual (adult vs pediatric).
+variants:
+  - name: EctopicAtrialBradycardia
+    manual_page: 40
+    description: "EABRAD: atrial rate < 60 bpm; abnormal P axis per manual; flutter excluded via flag."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "atrial_rate_bpm"
+          op: "<"
+          value: 60
+        - kind: threshold
+          expr: "rhythm_aflutter_flag"
+          op: "<"
+          value: 1
+        - kind: any_of
+          note: "Adult: P < -30 or P > 120; pediatric: P < -20 or P > 100 (manual)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -30
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 120
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: "<"
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -20
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 100
+
+  - name: EctopicAtrialRhythm
+    manual_page: 40
+    description: "EAR: atrial rate 60–100 bpm; abnormal P axis per manual; flutter excluded."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "atrial_rate_bpm"
+          op: ">="
+          value: 60
+        - kind: threshold
+          expr: "atrial_rate_bpm"
+          op: "<="
+          value: 100
+        - kind: threshold
+          expr: "rhythm_aflutter_flag"
+          op: "<"
+          value: 1
+        - kind: any_of
+          note: "Adult vs pediatric P-axis bands (manual)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -30
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 120
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: "<"
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -20
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 100
+
+  - name: EctopicAtrialTachycardia
+    manual_page: 40
+    description: "EATACH: atrial rate > 100 bpm; abnormal P axis per manual; flutter excluded."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "atrial_rate_bpm"
+          op: ">"
+          value: 100
+        - kind: threshold
+          expr: "rhythm_aflutter_flag"
+          op: "<"
+          value: 1
+        - kind: any_of
+          note: "Adult vs pediatric P-axis bands (manual)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -30
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 120
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: "<"
+                  value: 18
+                - kind: any_of
+                  clauses:
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: "<"
+                      value: -20
+                    - kind: threshold
+                      expr: "P_axis_deg"
+                      op: ">"
+                      value: 100

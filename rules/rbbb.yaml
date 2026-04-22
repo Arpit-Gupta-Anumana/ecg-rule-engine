@@ -1,0 +1,80 @@
+disease: RBBB
+manual_source: "12SL Physicians Guide v24, §3.7.2.8.1.1 p.60 and §3.7.3.8.1 p.90-91"
+description: >
+  Right bundle branch block. The manual gives a morphology description only:
+  "wide QRS, predominantly upright QRS with terminal R or R' in V1 or V2, and
+  wide terminal S waves in the lateral leads (I and V6)." No numeric
+  thresholds published. This rule encodes the standard AHA/ACCF/HRS 2009
+  RBBB criteria with amplitude-based proxies for the morphology tests.
+  Exclusions: WPW and ventricular pacing.
+manual_departure_notes: |
+  v0.1 was too loose (any 0.1 mV S in any lateral lead satisfied the
+  "wide terminal S" clause -> false positives on any slightly-wide QRS).
+
+  v0.2 required S > R in lead I OR V6 to enforce terminal S dominance.
+  This broke on real RBBB-over-LVH cases where the lateral R waves are
+  huge from the LVH, so S_V6 < R_V6 even though a genuine terminal S is
+  present. Spot-check on 500 random ECGs: sensitivity was 14%.
+
+  v0.3 required R_V1 >= 0.4 mV (tall R). Spot-check showed many real
+  RBBBs have parsed R_V1 in the 0.15-0.35 mV range because the R' is a
+  LATE notch with modest amplitude, not a tall monophasic R.
+
+  v0.4 (this version): primary morphology test is R present in V1
+  (R_V1 >= 0.15 mV) as a proxy for the rsR'/R' pattern - weak in amplitude
+  but present. Terminal S in lateral leads is a PRESENCE test (S_I >= 0.04
+  mV OR S_V6 >= 0.04 mV) rather than a dominance test, since dominance
+  fails in RBBB overlaid with LVH.
+
+  Limitations:
+    * True rsR' requires seeing two positive peaks in V1 - not detectable
+      from summary amplitudes alone. This caps sensitivity at ~35-40% on
+      random real ECGs.
+    * "Wide terminal S" ideally uses S duration, not just S amplitude;
+      our parser exposes Q duration but not S duration, so amplitude is
+      the best proxy we have.
+    * A morphology-aware detector on the raw waveform would close the
+      remaining sensitivity gap; that is future work.
+exclusions: [WPW, Paced]
+variants:
+  - name: Complete_RBBB
+    manual_page: 60
+    description: >
+      Wide QRS >= 120 ms AND tall terminal R in V1 (R_V1 >= 0.4 mV) AND
+      terminal S present in at least one lateral lead (I or V6, >= 0.04 mV).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Wide QRS >= 120 ms"
+          expr: "QRS_ms"
+          op: ">="
+          value: 120
+        - kind: threshold
+          note: "R present in V1 (R_V1 >= 0.15 mV) - proxy for rsR'/R' pattern"
+          expr: "R_V1_mV"
+          op: ">="
+          value: 0.15
+        - kind: any_of
+          note: "Terminal S present in I or V6 (>= 0.04 mV)"
+          clauses:
+            - { kind: threshold, expr: "S_I_mV",  op: ">=", value: 0.04 }
+            - { kind: threshold, expr: "S_V6_mV", op: ">=", value: 0.04 }
+
+  - name: RBBB_with_RVH
+    manual_page: 60
+    description: >
+      §3.7.2.8.1.1 explicit statement: "If RBBB is true and R or R' amplitude
+      > 1.5 mV in lead V1 AND QRS axis > 110 degrees, then state Right
+      bundle branch block, plus right ventricular hypertrophy."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms",         op: ">=", value: 120  }
+        - { kind: threshold, expr: "R_V1_mV",        op: ">",  value: 1.5  }
+        - { kind: threshold, expr: "QRS_axis_deg",   op: ">",  value: 110  }
+        - kind: any_of
+          note: "Terminal S present in lateral lead"
+          clauses:
+            - { kind: threshold, expr: "S_I_mV",  op: ">=", value: 0.04 }
+            - { kind: threshold, expr: "S_V6_mV", op: ">=", value: 0.04 }

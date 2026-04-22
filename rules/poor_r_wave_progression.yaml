@@ -1,0 +1,41 @@
+disease: PoorRWaveProgression
+manual_source: "12SL Physicians Guide v24, §3.7.2.10.7 p.71"
+description: >
+  Poor R-wave progression (acronym PRWP). The manual describes a post-pass
+  interaction: the test is skipped if neither anterior nor septal infarct is
+  stated, or if anterior injury is present; when anterior/septal infarct is
+  suspected without a matching injury (ST elevation) pattern, the program may
+  substitute “Poor R wave progression” for the infarct wording.
+manual_departure_notes: |
+  The manual’s conditional gating against AMI/SMI statements, anterior injury,
+  and the “second look” replacement logic are statement-level post-pass behaviors
+  not representable as isolated feature clauses. This file encodes only a
+  morphologic proxy for “R-wave progression V1→V4 fails to increase normally.”
+  Cutoffs:
+    • R_V3 < 0.3 mV mirrors the common “R < 3 mm in V3” teaching criterion
+      (Goldberger AL, Goldberger’s Clinical Electrocardiography: A Simplified
+      Approach, 9th ed., Elsevier 2017).
+    • Sequential non-increase R_V1→R_V4 (each step ΔR ≤ 0) operationalizes
+      failure of normal anterior R growth.
+exclusions: []
+sex_specific: false
+variants:
+  - name: PRWP_morphology
+    manual_page: 71
+    description: >
+      R in V3 below 0.3 mV, or R wave does not increase from V1 through V4
+      (non-positive increments).
+    clause:
+      kind: any_of
+      clauses:
+        - kind: threshold
+          note: "R_V3 < 0.3 mV (3 mm) — literature PRWP voltage cue"
+          expr: "R_V3_mV"
+          op: "<"
+          value: 0.3
+        - kind: all_of
+          note: "No R increase V1→V2→V3→V4"
+          clauses:
+            - { kind: threshold, expr: "R_V2_mV - R_V1_mV", op: "<=", value: 0 }
+            - { kind: threshold, expr: "R_V3_mV - R_V2_mV", op: "<=", value: 0 }
+            - { kind: threshold, expr: "R_V4_mV - R_V3_mV", op: "<=", value: 0 }

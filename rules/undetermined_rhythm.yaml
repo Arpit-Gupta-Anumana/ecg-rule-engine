@@ -1,0 +1,95 @@
+disease: UndeterminedRhythm
+manual_source: "12SL Physicians Guide v24, §3.7.1.1.7 p.43"
+description: >
+  Wide-QRS and SVT rate/QRS patterns from the manual. IVR: ventricular rate
+  ≤ 40 bpm, QRS > 120 ms, regular RR. WQR: rate 40–120 bpm, QRS > 120 ms,
+  regular RR. WQTACH: rate > 120 bpm, QRS > 120 ms, regular RR. SVT: rate
+  > 140 bpm (> 220 pediatric), QRS < 120 ms, regular RR.
+manual_departure_notes: |
+  The manual requires regular RR intervals for all listed patterns. The registry
+  does not expose RR regularity or RR range; clauses use rate and QRS duration
+  only. This will not distinguish irregular rhythms that might fail the manual
+  definition.
+variants:
+  - name: IdioventricularRhythm
+    manual_page: 43
+    description: "IVR: ventricular rate ≤ 40 bpm, QRS > 120 ms (regular RR not encoded)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: "<="
+          value: 40
+        - kind: threshold
+          expr: "QRS_ms"
+          op: ">"
+          value: 120
+
+  - name: WideQRSRhythm
+    manual_page: 43
+    description: "WQR: ventricular rate 40–120 bpm, QRS > 120 ms (regular RR not encoded)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: ">="
+          value: 40
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: "<="
+          value: 120
+        - kind: threshold
+          expr: "QRS_ms"
+          op: ">"
+          value: 120
+
+  - name: WideQRSTachycardia
+    manual_page: 43
+    description: "WQTACH: ventricular rate > 120 bpm, QRS > 120 ms (regular RR not encoded)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: ">"
+          value: 120
+        - kind: threshold
+          expr: "QRS_ms"
+          op: ">"
+          value: 120
+
+  - name: SVT
+    manual_page: 43
+    description: "SVT: QRS < 120 ms; rate > 140 bpm adult, > 220 bpm pediatric (regular RR not encoded)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+        - kind: any_of
+          note: "Adult vs pediatric rate threshold (manual)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: ">="
+                  value: 18
+                - kind: threshold
+                  expr: "ventricular_rate_bpm"
+                  op: ">"
+                  value: 140
+            - kind: all_of
+              clauses:
+                - kind: threshold
+                  expr: "age_years"
+                  op: "<"
+                  value: 18
+                - kind: threshold
+                  expr: "ventricular_rate_bpm"
+                  op: ">"
+                  value: 220

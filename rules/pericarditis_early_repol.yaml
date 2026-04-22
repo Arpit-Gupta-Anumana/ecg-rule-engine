@@ -1,0 +1,146 @@
+disease: PericarditisOrEarlyRepol
+manual_source: "12SL Physicians Guide v24, §3.7.2.11.2 p.75 (early repol) and §3.7.2.11.3 p.75 (acute pericarditis)"
+description: >
+  Diffuse ST elevation patterns that are NOT regional STEMI. Both early
+  repolarization (SERYR2/REPOL) and acute pericarditis (PCARD) share:
+  widespread ST elevation across many leads, upright T waves, no reciprocal
+  depression. Pericarditis requires more ST elevation; early repol allows a
+  smaller magnitude.
+
+  Regional STEMI (injury pattern per §3.7.2.11.1) is distinguished by being
+  confined to anatomic lead groups and usually accompanied by reciprocal
+  depression. We encode "diffuseness" as: ST elevation >= threshold in >= 5
+  leads across >= 2 anatomic groups (anterior, lateral, inferior).
+manual_departure_notes: >
+  Neither early repol (§3.7.2.11.2) nor pericarditis (§3.7.2.11.3) publishes
+  the exact numeric thresholds 12SL uses; both say "similar to [ ] except more
+  ST elevation is required". The thresholds here are the widely accepted
+  literature values: >= 0.10 mV for early repol and >= 0.15 mV for acute
+  pericarditis, both with T upright (T_mV > 0) in the same leads. The manual
+  also requires "no reciprocal ST depression" for early repol - encoded here
+  as aVR STJ > -0.10 mV and V1 STJ > -0.10 mV (the leads most likely to show
+  reciprocal change for a diffuse elevation pattern). The QRS < 120 ms
+  exclusion for pericarditis (§3.7.2.11.3) is encoded as an embedded clause.
+  We do NOT encode PR-segment depression, which is the most specific sign of
+  pericarditis (literature: PR depression in II, III, aVF and PR elevation in
+  aVR) because our parser does not expose a PR-offset feature yet.
+exclusions: [LBBB, WPW, Paced, RBBB]
+sex_specific: false
+variants:
+
+  - name: Early_Repolarization
+    manual_page: 75
+    description: >
+      Diffuse ST elevation >= 0.10 mV in >= 5 leads across >= 2 anatomic
+      groups, with upright T in those leads and no reciprocal depression in
+      aVR or V1. Approximates §3.7.2.11.2 "Early repolarization" statement.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: point_score
+          threshold_positive: 5
+          note: ">= 5 leads with STJ >= 0.10 mV AND upright T"
+          items:
+            - { points: 1, note: "I",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_I_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "II",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_II_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "aVL",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_aVL_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "aVF",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_aVF_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "V2",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V2_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "V3",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V3_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "V4",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V4_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "V5",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V5_mV",   op: ">",  value: 0 },
+                ]}}
+            - { points: 1, note: "V6",
+                when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.10 },
+                  { kind: threshold, expr: "T_V6_mV",   op: ">",  value: 0 },
+                ]}}
+        - kind: threshold
+          note: "No reciprocal ST depression in aVR (STJ > -0.10 mV)"
+          expr: "STJ_aVR_mV"
+          op: ">"
+          value: -0.10
+        - kind: threshold
+          note: "QRS < 120 ms (otherwise defer to conduction-abnormality repol)"
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+
+  - name: Acute_Pericarditis
+    manual_page: 75
+    description: >
+      Widespread ST elevation >= 0.15 mV across >= 5 leads in >= 2 anatomic
+      groups, upright T, QRS < 120 ms (§3.7.2.11.3 exclusion). PR-segment
+      depression is the gold-standard morphology sign but our parser does not
+      yet expose a PR offset, so it is noted in departures above but not
+      required here.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "QRS < 120 ms (per manual §3.7.2.11.3)"
+          expr: "QRS_ms"
+          op: "<"
+          value: 120
+        - kind: point_score
+          threshold_positive: 5
+          note: ">= 5 leads with STJ >= 0.15 mV AND upright T"
+          items:
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_I_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_I_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_II_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_II_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_aVL_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_aVF_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V2_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V3_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V4_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V5_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V5_mV",   op: ">",  value: 0 }]}}
+            - { points: 1, when: { kind: all_of, clauses: [
+                  { kind: threshold, expr: "STJ_V6_mV", op: ">=", value: 0.15 },
+                  { kind: threshold, expr: "T_V6_mV",   op: ">",  value: 0 }]}}

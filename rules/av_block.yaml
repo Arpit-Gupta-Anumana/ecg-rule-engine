@@ -1,0 +1,65 @@
+disease: AVBlock
+manual_source: "12SL Physicians Guide v24, §3.7.1.2.2.4 pp.46–48"
+description: >
+  Partial encoding of AV conduction statements. Complete heart block (CHB) and
+  AV dissociation in the manual involve regular atrial rhythm, absence of rigid
+  P–QRS coupling for primary beats, rate separation, and either PR variance > 200 ms
+  or atrial rate > 25 bpm faster than ventricular rate, with additional context
+  excluding Mobitz I/II patterns. Atrial fibrillation ventricular response:
+  rapid (RVR) and slow (SVR) rate bands.
+manual_departure_notes: |
+  Mobitz type I and II AV block require beat-by-beat PR/RR analysis not present
+  in the registry; those criteria are not encoded.
+
+  CHB/AV dissociation are not fully implementable from global features: the
+  manual requires "no rigidly coupled P wave detected for primary beats,"
+  "regular atrial rhythm detected," "no AV Block (Mobitz I or II)," and
+  optional PR-variance > 200 ms. Only the numeric discriminator
+  (atrial_rate_bpm − ventricular_rate_bpm) > 25 bpm is implemented here as a
+  partial CompleteHeartBlock surrogate per project policy for this file.
+
+  AFib RVR/SVR use rhythm_afib_flag as AFib present; manual wording assumes
+  established AFib diagnosis from the broader algorithm.
+variants:
+  - name: CompleteHeartBlock
+    manual_page: 46
+    description: >
+      Partial criterion only: atrial rate exceeds ventricular rate by more than
+      25 bpm (manual allows this OR PR variance > 200 ms). Other CHB requirements
+      not encoded—see manual_departure_notes.
+    clause:
+      kind: threshold
+      note: "atrial_rate_bpm - ventricular_rate_bpm > 25 (manual threshold)"
+      expr: "atrial_rate_bpm - ventricular_rate_bpm"
+      op: ">"
+      value: 25
+
+  - name: AFib_RapidVentResponse
+    manual_page: 46
+    description: "AFib with rapid ventricular response: rhythm_afib_flag and ventricular rate > 100 bpm (RVR)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "rhythm_afib_flag"
+          op: ">="
+          value: 1
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: ">"
+          value: 100
+
+  - name: AFib_SlowVentResponse
+    manual_page: 46
+    description: "AFib with slow ventricular response: rhythm_afib_flag and ventricular rate < 60 bpm (SVR)."
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          expr: "rhythm_afib_flag"
+          op: ">="
+          value: 1
+        - kind: threshold
+          expr: "ventricular_rate_bpm"
+          op: "<"
+          value: 60

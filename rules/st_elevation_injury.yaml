@@ -1,0 +1,145 @@
+disease: STElevationInjury
+manual_source: "12SL Physicians Guide v24, §3.7.2.11.1 p.72-74 and §3.7.2.15 p.84"
+description: >
+  Acute epicardial injury / STEMI pattern by anatomic region. The manual
+  §3.7.2.11.1 uses three items: (a) degree of ST elevation, (b) ST:T ratio,
+  and (c) reciprocal ST changes. Each regional variant below implements
+  items (a) and (c) as a two-tier criterion:
+
+    * Tier 1 (high confidence): >= 2 contiguous leads in the region with
+      STJ >= a HIGH sex/age threshold (the ACC/AHA STEMI guideline values).
+    * Tier 2 (moderate confidence + reciprocal): >= 2 contiguous leads at
+      the lower MODERATE threshold (0.10 mV for all 12-lead leads) AND at
+      least one reciprocal lead shows STJ <= -0.05 mV. Reciprocal pairs
+      (from standard vectorcardiography):
+        - Anterior injury  <-> Inferior reciprocal (II, III, aVF)
+        - Lateral injury   <-> Inferior reciprocal (II, III, aVF) [I/aVL pair]
+        - Inferior injury  <-> Lateral reciprocal (I, aVL)
+
+  The manual's (b) ST:T ratio is NOT implemented (requires slope parsing we
+  don't expose yet); it is documented in manual_departure_notes below.
+manual_departure_notes: >
+  Tier-1 thresholds are the 2012 ACC/AHA STEMI guideline values since the
+  manual only gestures at "anteroseptal leads tested with a higher threshold
+  than the other leads" without publishing numbers. Tier-2 "reciprocal ST
+  depression" threshold (-0.05 mV) is a conservative operational cutoff;
+  clinical literature uses -0.05 to -0.10 mV. ST:T ratio (manual item b) is
+  not modelled - would require additional features beyond STJ/STM. LVH-aware
+  threshold adjustment (§3.7.2.11.1 - "thresholds are adjusted for
+  repolarization abnormalities that can occur with LVH and/or conduction
+  abnormalities") is handled by the statement-suppression post-pass, not
+  here. Tests are skipped if LBBB, WPW, or Paced is stated (extends the
+  §3.7.2.10 preamble to injury per GE's documented convention); Sgarbossa
+  criteria for LBBB-overlaid MI are not implemented.
+exclusions: [LBBB, WPW, Paced]
+sex_specific: true
+variants:
+
+  - name: Anterior_STEMI
+    manual_page: 72
+    description: >
+      ST elevation in >= 2 contiguous anterior leads (V1-V4), either at the
+      high ACC/AHA threshold (V2/V3 at M:0.20 F:0.15, V1/V4 at 0.15 mV) OR at
+      the moderate threshold (0.10 mV uniformly) accompanied by reciprocal
+      ST depression in >= 1 of II/III/aVF.
+    clause:
+      kind: any_of
+      clauses:
+        - kind: point_score
+          note: "Tier 1: high-threshold anterior elevation (no reciprocal required)"
+          threshold_positive: 2
+          items:
+            - { points: 1, note: "V1 STJ >= 0.15 mV",
+                when: { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.15 } }
+            - { points: 1, note: "V2 STJ >= sex threshold (M:0.20, F:0.15)",
+                when: { kind: threshold, expr: "STJ_V2_mV", op: ">=",
+                        value: { M: 0.20, F: 0.15 } } }
+            - { points: 1, note: "V3 STJ >= sex threshold (M:0.20, F:0.15)",
+                when: { kind: threshold, expr: "STJ_V3_mV", op: ">=",
+                        value: { M: 0.20, F: 0.15 } } }
+            - { points: 1, note: "V4 STJ >= 0.15 mV",
+                when: { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.15 } }
+        - kind: all_of
+          note: "Tier 2: moderate anterior elevation with reciprocal depression"
+          clauses:
+            - kind: point_score
+              note: ">= 2 anterior leads with STJ >= 0.10 mV"
+              threshold_positive: 2
+              items:
+                - { points: 1, when: { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_V3_mV", op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_V4_mV", op: ">=", value: 0.10 } }
+            - kind: any_of
+              note: "Reciprocal depression in inferior leads (STJ <= -0.05 mV)"
+              clauses:
+                - { kind: threshold, expr: "STJ_II_mV",  op: "<=", value: -0.05 }
+                - { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.05 }
+                - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.05 }
+
+  - name: Lateral_STEMI
+    manual_page: 72
+    description: >
+      ST elevation in >= 2 contiguous lateral leads (I, aVL, V5, V6), either
+      at the high threshold (0.15 mV) OR at the moderate threshold (0.10 mV)
+      with reciprocal depression in >= 1 of II/III/aVF (for the high-lateral
+      I/aVL pattern) or inferior reciprocal leads in general.
+    clause:
+      kind: any_of
+      clauses:
+        - kind: point_score
+          note: "Tier 1: high-threshold lateral elevation (no reciprocal required)"
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_I_mV",   op: ">=", value: 0.15 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.15 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV",  op: ">=", value: 0.15 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV",  op: ">=", value: 0.15 } }
+        - kind: all_of
+          note: "Tier 2: moderate lateral elevation with inferior reciprocal"
+          clauses:
+            - kind: point_score
+              threshold_positive: 2
+              items:
+                - { points: 1, when: { kind: threshold, expr: "STJ_I_mV",   op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_aVL_mV", op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_V5_mV",  op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_V6_mV",  op: ">=", value: 0.10 } }
+            - kind: any_of
+              note: "Reciprocal inferior ST depression"
+              clauses:
+                - { kind: threshold, expr: "STJ_II_mV",  op: "<=", value: -0.05 }
+                - { kind: threshold, expr: "STJ_III_mV", op: "<=", value: -0.05 }
+                - { kind: threshold, expr: "STJ_aVF_mV", op: "<=", value: -0.05 }
+
+  - name: Inferior_STEMI
+    manual_page: 72
+    description: >
+      ST elevation in >= 2 contiguous inferior leads (II, III, aVF), either
+      at the high threshold (0.15 mV) OR at the moderate threshold (0.10 mV)
+      with reciprocal depression in >= 1 of I/aVL. Reciprocal depression in
+      aVL is the most specific sign of true inferior STEMI.
+    clause:
+      kind: any_of
+      clauses:
+        - kind: point_score
+          note: "Tier 1: high-threshold inferior elevation (>= 0.15 mV)"
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "STJ_II_mV",  op: ">=", value: 0.15 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.15 } }
+            - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.15 } }
+        - kind: all_of
+          note: "Tier 2: moderate inferior elevation with reciprocal in I/aVL"
+          clauses:
+            - kind: point_score
+              threshold_positive: 2
+              items:
+                - { points: 1, when: { kind: threshold, expr: "STJ_II_mV",  op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_III_mV", op: ">=", value: 0.10 } }
+                - { points: 1, when: { kind: threshold, expr: "STJ_aVF_mV", op: ">=", value: 0.10 } }
+            - kind: any_of
+              note: "Reciprocal ST depression in I or aVL (<= -0.10 mV)"
+              clauses:
+                - { kind: threshold, expr: "STJ_I_mV",   op: "<=", value: -0.10 }
+                - { kind: threshold, expr: "STJ_aVL_mV", op: "<=", value: -0.10 }

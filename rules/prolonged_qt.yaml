@@ -1,0 +1,44 @@
+disease: ProlongedQT
+manual_source: "12SL Physicians Guide v24, §3.7.2.14 p.83"
+description: >
+  QTc prolongation. The manual defines two levels:
+    - "Prolonged QT" when QTc >= 500 ms.
+    - "QTcX >= 480 msec" (informational warning) when 480 <= QTc < 500 ms.
+  Tests skipped if any of: WPW, IVCB, RBBB, LBBB, QRS duration >= 120 ms, or
+  ventricular rate > 120 bpm. QTc uses whichever correction the device is
+  configured for (Bazett / Fridericia / Framingham).
+manual_departure_notes: |
+  We evaluate QTc using Bazett by default (our parser fills
+  `QTc_Bazett_ms`). If Fridericia or Framingham is configured on the acquiring
+  cardiograph, the parser surfaces `QTc_Fridericia_ms` / `QTc_Framingham_ms`
+  but this YAML uses Bazett for consistency across the dataset.
+
+  §3.7.2.14 lists IVCB among conditions that skip prolonged-QT tests. On
+  PTB-XL we set `ivcb_flag` when SCP states IVCD, ILBBB, or IRBBB (codes
+  taken from the record metadata—the Guide does not map acronyms to SCP).
+  Each variant still requires QRS < 120 ms, which covers wide-QRS IVCD that
+  is not separately flagged.
+exclusions: [WPW, LBBB, RBBB, Paced, IVCB]
+variants:
+  - name: QTc_ge_500
+    manual_page: 83
+    description: "QTc (Bazett) >= 500 ms AND QRS < 120 ms AND HR <= 120 bpm."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QTc_Bazett_ms",       op: ">=", value: 500 }
+        - { kind: threshold, expr: "QRS_ms",              op: "<",  value: 120 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 120 }
+
+  - name: QTc_480_to_500
+    manual_page: 83
+    description: >
+      480 <= QTc (Bazett) < 500 ms AND QRS < 120 ms AND HR <= 120 bpm.
+      Corresponds to the informational "QTcX >= 480 msec" statement.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QTc_Bazett_ms",       op: ">=", value: 480 }
+        - { kind: threshold, expr: "QTc_Bazett_ms",       op: "<",  value: 500 }
+        - { kind: threshold, expr: "QRS_ms",              op: "<",  value: 120 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 120 }

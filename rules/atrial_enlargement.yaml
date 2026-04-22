@@ -1,0 +1,71 @@
+disease: AtrialEnlargement
+manual_source: "12SL Physicians Guide v24, §3.7.2.3 p.57"
+description: >
+  Chamber enlargement detected from P-wave morphology. The manual defines
+  three statements:
+    - Right atrial enlargement (RAE): P amplitude > 250 uV in any of II, III,
+      aVF, V1, V2.
+    - Left atrial enlargement (LAE): considers the terminal P amplitude,
+      duration, and area in V1 and V2.
+    - Biatrial enlargement (BAE): both RAE and LAE fire.
+  Tests skipped if WPW, non-sinus rhythm, or abnormal P axis.
+manual_departure_notes: |
+  The manual defines LAE qualitatively ("terminal P amplitude, duration, and
+  area in V1 and V2") without a numeric threshold. We encode the standard
+  literature proxy:
+    - P-wave duration >= 120 ms, AND one of:
+        * terminal-negative P in V1 with |P_V1_mV| >= 0.1 (rough Morris index
+          proxy, absent a true terminal-negative amplitude feature in our XML
+          parser), or
+        * broad/notched P amplitude in lead II >= 0.25 mV.
+  This is weaker than the manual's actual LAE detector, so LAE sensitivity in
+  evaluation will under-report until we add a `P_V1_terminal_neg_mV` feature.
+  We explicitly name this variant `LAE_literature_proxy` to make the
+  departure visible in every report.
+exclusions: [WPW]
+variants:
+  - name: RAE
+    manual_page: 57
+    description: >
+      P amplitude > 0.25 mV in any of II, III, aVF, V1, V2 (manual: > 250 uV).
+      Also requires sinus rhythm (abnormal-P-axis gate is applied via P axis
+      range).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Sinus rhythm required"
+          expr: "rhythm_sinus_flag"
+          op: ">="
+          value: 1
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "P_II_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_III_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_aVF_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V1_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V2_mV",  op: ">", value: 0.25 }
+
+  - name: LAE_literature_proxy
+    manual_page: 57
+    description: >
+      Proxy for LAE: P-wave duration >= 120 ms AND (broad/notched P in II
+      >= 0.25 mV OR terminal-negative-appearing P in V1 >= 0.1 mV). Weaker
+      than the manual's morphology test; see manual_departure_notes.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Sinus rhythm required"
+          expr: "rhythm_sinus_flag"
+          op: ">="
+          value: 1
+        - kind: threshold
+          note: "P duration >= 120 ms"
+          expr: "P_ms"
+          op: ">="
+          value: 120
+        - kind: any_of
+          clauses:
+            - { kind: threshold, note: "Broad P in II",    expr: "P_II_mV",            op: ">=", value: 0.25 }
+            - { kind: threshold, note: "Terminal P in V1", expr: "abs(P_V1_mV)",       op: ">=", value: 0.1  }

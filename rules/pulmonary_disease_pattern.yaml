@@ -1,0 +1,95 @@
+disease: PulmonaryDiseasePattern
+manual_source: "12SL Physicians Guide v24, §3.7.2.6 p.58"
+description: >
+  Pulmonary disease pattern (acronym PULD). The manual states the test is skipped
+  if WPW is stated or QRS duration > 120 ms, and that the pattern considers
+  S1-S2-S3, low voltage, right atrial enlargement, abnormal P axis, right or left
+  QRS axis deviation or indeterminate axis, and deep S in V5 or V6; if at least
+  four of these attributes are present, the pulmonary disease pattern is stated.
+manual_departure_notes: |
+  The manual lists the attributes qualitatively and does not publish numeric
+  cutoffs for most of them. Operational values below are therefore from standard
+  ECG references, not from the 12SL text:
+    • Low voltage (limb): peak R+S in every limb lead < 0.5 mV (5 mm) matches
+      the AHA/ACCF/HRS adult limb low-voltage convention (Hancock et al.,
+      Circulation 2009;119:e235-e240 — “<0.5 mV in all limb leads”).
+    • Right atrial enlargement proxy: P amplitude in lead II ≥ 0.25 mV (2.5 mm),
+      a widely cited amplitude criterion (e.g. Surawicz & Knilans, Chou’s
+      Electrocardiography in Clinical Practice, 6th ed., 2008).
+    • Abnormal P axis: normal frontal P-axis range is often given as roughly
+      0° to +75°; we flag P_axis_deg < 0 OR > 75° per common teaching sources
+      (e.g. Surawicz & Knilans).
+    • QRS axis deviation / indeterminate: encoded as any axis outside the usual
+      “normal” adult frontal QRS range −30° to +90° (i.e. QRS_axis_deg < −30 OR
+      QRS_axis_deg > 90), consistent with standard definitions of LAD/RAD vs
+      normal (ibid.).
+    • Deep S in V5/V6: threshold 0.30 mV was specified for this project DSL
+      (not stated in the quoted manual excerpt).
+    • S1-S2-S3: S ≥ 0.1 mV in each of I, II, III was specified for this project
+      (manual names the pattern only).
+  The composite “≥ 4 of 6” scoring mirrors the manual’s “at least 4” requirement
+  given six listed attributes.
+exclusions: [WPW]
+sex_specific: false
+variants:
+  - name: PULD_point_score
+    manual_page: 58
+    description: >
+      At least four of six scored attributes: S1-S2-S3 pattern; limb low voltage;
+      RAE proxy (P II ≥ 0.25 mV); abnormal P axis; QRS axis outside −30° to +90°;
+      deep S in V5 or V6 (≥ 0.3 mV). Gated with QRS_ms ≤ 120 ms per manual skip.
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Manual skip: QRS duration > 120 ms"
+          expr: "QRS_ms"
+          op: "<="
+          value: 120
+        - kind: point_score
+          note: "≥ 4 of 6 pulmonary-pattern attributes (manual: at least 4 present)"
+          threshold_positive: 4
+          items:
+            - points: 1
+              note: "S1-S2-S3: S in I, II, III each ≥ 0.1 mV"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "S_I_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "S_II_mV", op: ">=", value: 0.1 }
+                  - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }
+            - points: 1
+              note: "Limb low voltage: max limb (R+S) < 0.5 mV (AHA/HRS convention)"
+              when:
+                kind: threshold
+                expr: "max(R_I_mV + S_I_mV, R_II_mV + S_II_mV, R_III_mV + S_III_mV, R_aVR_mV + S_aVR_mV, R_aVL_mV + S_aVL_mV, R_aVF_mV + S_aVF_mV)"
+                op: "<"
+                value: 0.5
+            - points: 1
+              note: "RAE proxy: P II ≥ 0.25 mV"
+              when:
+                kind: threshold
+                expr: "P_II_mV"
+                op: ">="
+                value: 0.25
+            - points: 1
+              note: "Abnormal P axis: < 0° or > 75° (literature normal range)"
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "P_axis_deg", op: "<", value: 0 }
+                  - { kind: threshold, expr: "P_axis_deg", op: ">", value: 75 }
+            - points: 1
+              note: "QRS axis outside normal −30° to +90° (LAD, RAD, or beyond)"
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "QRS_axis_deg", op: "<", value: -30 }
+                  - { kind: threshold, expr: "QRS_axis_deg", op: ">", value: 90 }
+            - points: 1
+              note: "Deep S in V5 or V6 ≥ 0.3 mV (project threshold)"
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "S_V5_mV", op: ">=", value: 0.3 }
+                  - { kind: threshold, expr: "S_V6_mV", op: ">=", value: 0.3 }

@@ -1,0 +1,47 @@
+disease: LowVoltageQRS
+manual_source: "12SL Physicians Guide v24, §3.7.2.5 p.58"
+description: >
+  Low-voltage QRS. The manual:
+    "QRS deflection of all limb leads < 500 uV, or QRS deflection < 1000 uV in
+    all 12 leads."
+  Test skipped if WPW or QRS duration > 120 ms.
+manual_departure_notes: |
+  "QRS deflection" in the manual means peak-to-peak R + |S| amplitude per
+  lead. We compute it as (R_<lead>_mV + S_<lead>_mV) since our parser stores
+  S as its absolute amplitude (not signed). The two disjuncts map to two
+  variants.
+exclusions: [WPW]
+variants:
+  - name: LowV_all_limb
+    manual_page: 58
+    description: "R + S < 0.5 mV in every limb lead (I, II, III, aVR, aVL, aVF)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms", op: "<=", value: 120 }
+        - { kind: threshold, expr: "R_I_mV   + S_I_mV",   op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_II_mV  + S_II_mV",  op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_III_mV + S_III_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVR_mV + S_aVR_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVL_mV + S_aVL_mV", op: "<", value: 0.5 }
+        - { kind: threshold, expr: "R_aVF_mV + S_aVF_mV", op: "<", value: 0.5 }
+
+  - name: LowV_all_12
+    manual_page: 58
+    description: "R + S < 1.0 mV in every one of the 12 leads."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms", op: "<=", value: 120 }
+        - { kind: threshold, expr: "R_I_mV   + S_I_mV",   op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_II_mV  + S_II_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_III_mV + S_III_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVR_mV + S_aVR_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVL_mV + S_aVL_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_aVF_mV + S_aVF_mV", op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V1_mV  + S_V1_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V2_mV  + S_V2_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V3_mV  + S_V3_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V4_mV  + S_V4_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V5_mV  + S_V5_mV",  op: "<", value: 1.0 }
+        - { kind: threshold, expr: "R_V6_mV  + S_V6_mV",  op: "<", value: 1.0 }

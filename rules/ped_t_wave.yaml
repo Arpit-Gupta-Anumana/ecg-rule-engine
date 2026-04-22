@@ -1,0 +1,220 @@
+disease: PediatricTWave
+manual_source: "12SL Physicians Guide v24, §3.7.3.14 pp.108–111"
+description: >
+  Pediatric T-wave and QRS–T angle statements. T-wave inversion (§3.7.3.14.1):
+  V1–V4 not inspected for inversion; lateral = T inverted in >= 2 of V5, V6, I,
+  aVL; inferior = T inverted in II or aVF. Nonspecific T (§3.7.3.14.2): small T
+  or shallow inversion in >= 2 leads. QRS–T angle (§3.7.3.14.3): same quantitative
+  test as adult — abs(QRS_axis - T_axis) >= 60 AND (T_axis < 0 OR T_axis > 90).
+manual_departure_notes: |
+  T-wave inversion uses T_mV < 0 (strict negativity); the manual does not specify
+  a minimum depth in millivolts.
+
+  Nonspecific T amplitudes follow the same literature operationalization as
+  rules/nonspecific_t_wave.yaml (Surawicz & Knilans / Chou’s Electrocardiography
+  in Clinical Practice, 6th ed., 2008 — small upright T 0–0.10 mV; shallow
+  inversion [−0.10, 0) mV; aVR excluded from scoring).
+
+  QRS–T angle criteria are verbatim from the pediatric manual cross-reference
+  to the adult rule; frontal-plane axis wrap-around is not corrected (same
+  caveat as abnormal_qrst_angle.yaml).
+exclusions: []
+sex_specific: false
+variants:
+  - name: TWI_lateral_ped
+    manual_page: 108
+    description: "T < 0 in >= 2 of V5, V6, I, aVL (V1–V4 not used); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - { points: 1, when: { kind: threshold, expr: "T_V5_mV", op: "<", value: 0 } }
+            - { points: 1, when: { kind: threshold, expr: "T_V6_mV", op: "<", value: 0 } }
+            - { points: 1, when: { kind: threshold, expr: "T_I_mV", op: "<", value: 0 } }
+            - { points: 1, when: { kind: threshold, expr: "T_aVL_mV", op: "<", value: 0 } }
+
+  - name: TWI_inferior_ped
+    manual_page: 108
+    description: "T < 0 in lead II or aVF; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "T_II_mV", op: "<", value: 0 }
+            - { kind: threshold, expr: "T_aVF_mV", op: "<", value: 0 }
+
+  - name: Nonspecific_T_ped
+    manual_page: 109
+    description: >
+      Small upright T (0–0.10 mV) or shallow inversion [−0.10, 0) in >= 2 leads
+      (aVR excluded); age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - points: 1
+              note: "Lead I"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_I_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_I_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_I_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_I_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead II"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_II_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_II_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_II_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_II_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead III"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_III_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_III_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_III_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_III_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead aVL"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_aVL_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_aVL_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_aVL_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_aVL_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead aVF"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_aVF_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_aVF_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_aVF_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_aVF_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V1"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V1_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V1_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V2"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V2_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V2_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V3"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V3_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V3_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V3_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V3_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V4"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V4_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V4_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V4_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V4_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V5"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V5_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V5_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V5_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V5_mV", op: ">=", value: -0.10 }
+            - points: 1
+              note: "Lead V6"
+              when:
+                kind: any_of
+                clauses:
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V6_mV", op: ">", value: 0 }
+                      - { kind: threshold, expr: "T_V6_mV", op: "<", value: 0.10 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "T_V6_mV", op: "<", value: 0 }
+                      - { kind: threshold, expr: "T_V6_mV", op: ">=", value: -0.10 }
+
+  - name: Abnormal_QRS_T_angle_ped
+    manual_page: 111
+    description: >
+      abs(QRS_axis_deg - T_axis_deg) >= 60 AND (T_axis_deg < 0 OR T_axis_deg > 90);
+      age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "abs(QRS_axis_deg - T_axis_deg)", op: ">=", value: 60 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "T_axis_deg", op: "<", value: 0 }
+            - { kind: threshold, expr: "T_axis_deg", op: ">", value: 90 }

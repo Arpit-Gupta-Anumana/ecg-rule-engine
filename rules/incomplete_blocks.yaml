@@ -1,0 +1,102 @@
+disease: IncompleteBundleBlocks
+manual_source: "12SL Physicians Guide v24, §3.7.2.8.2 p.61 and §3.7.3.8.1-.2 p.90-92"
+description: >
+  Incomplete bundle branch blocks. The manual defines these as having the
+  MORPHOLOGY of the corresponding complete block but a QRS duration that is
+  only "slightly prolonged for age and not as wide as complete LBBB/RBBB"
+  (§3.7.3.8.2 p.92). The acronyms are IRBBB and ILBBB.
+
+  Also encoded here is the RSR' pattern in V1 (§3.7.2.8.2): an rSR' / qR
+  pattern in V1 with a narrow QRS that does NOT meet complete- or
+  incomplete-RBBB criteria.
+manual_departure_notes: |
+  v0.1 of ILBBB fired on 25/500 (5%) of random real ECGs - essentially every
+  LVH with borderline-wide QRS - because its only morphology tests were
+  "R > S in V6 AND S > R in V1" which is the normal-heart default.
+
+  v0.2 (this version) requires the same morphology discriminators as the
+  complete-block rules but with a narrower QRS window, so the rules form a
+  clean nested pair:
+
+    LBBB  : QRS >= 120 AND (LBBB morphology)
+    ILBBB : 105 <= QRS < 120 AND (LBBB morphology)
+
+    RBBB  : QRS >= 120 AND R_V1 >= 0.4 AND terminal S in lateral
+    IRBBB : 100 <= QRS < 120 AND R_V1 >= 0.4 AND terminal S in lateral
+
+  Limitations: same as the corresponding complete-block rules - the "wide
+  Q/S in V1" and "wide terminal S in lateral" tests are amplitude-based
+  proxies because our parser does not yet expose an S-duration feature.
+exclusions: [WPW, Paced]
+variants:
+
+  - name: IRBBB
+    manual_page: 61
+    description: >
+      QRS in [100, 120) ms AND R_V1 >= 0.4 mV (terminal R') AND terminal S
+      present in I or V6 (>= 0.04 mV). Same morphology as complete RBBB
+      with a narrower QRS window.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms",   op: ">=", value: 100 }
+        - { kind: threshold, expr: "QRS_ms",   op: "<",  value: 120 }
+        - { kind: threshold, expr: "R_V1_mV",  op: ">=", value: 0.3 }
+        - kind: any_of
+          note: "Terminal S present in I or V6"
+          clauses:
+            - { kind: threshold, expr: "S_I_mV",  op: ">=", value: 0.04 }
+            - { kind: threshold, expr: "S_V6_mV", op: ">=", value: 0.04 }
+
+  - name: ILBBB
+    manual_page: 61
+    description: >
+      QRS in [110, 120) ms AND strongly negative QRS in V1 (deep S by >= 1.5
+      mV dominance OR clear QS pattern) AND R dominant in I AND absent
+      septal Q in V6. Thresholds are deliberately STRICTER than the
+      complete-LBBB counterparts because ILBBB is very easily over-called -
+      LVH with borderline-wide QRS shows the same "deep S in V1, tall R in
+      I" pattern.  Narrowing the QRS window to 110-119 ms and requiring a
+      much deeper S in V1 (1.5 mV vs 0.3 mV) keeps specificity high at the
+      cost of missing milder cases.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms", op: ">=", value: 110 }
+        - { kind: threshold, expr: "QRS_ms", op: "<",  value: 120 }
+        - kind: threshold
+          note: "R dominant in lead I"
+          expr: "R_I_mV - S_I_mV"
+          op: ">"
+          value: 0
+        - kind: any_of
+          note: "V1 strongly negative (deep S or QS pattern)"
+          clauses:
+            - { kind: threshold, expr: "S_V1_mV - R_V1_mV", op: ">=", value: 1.5 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "Q_V1_mV", op: ">=", value: 0.5 }
+                - { kind: threshold, expr: "R_V1_mV", op: "<",  value: 0.1 }
+        - kind: threshold
+          note: "Absent septal Q in V6 (Q_V6 < 0.04 mV)"
+          expr: "Q_V6_mV"
+          op: "<"
+          value: 0.04
+
+  - name: RSR_pattern_V1
+    manual_page: 61
+    description: >
+      §3.7.2.8.2 RSR' pattern: rsR' or qR pattern in V1 without meeting
+      RBBB / IRBBB criteria. Approximated as: narrow QRS (< 100 ms), with
+      a meaningful R in V1 (>= 0.4 mV) together with a small Q component
+      in V1 or V2 (the "R'" notch proxy).
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "QRS_ms",  op: "<",  value: 100  }
+        - { kind: threshold, expr: "R_V1_mV", op: ">=", value: 0.4  }
+        - kind: any_of
+          note: "Small Q component in V1 or V2 (proxy for rsR' notch)"
+          clauses:
+            - { kind: threshold, expr: "Q_V1_mV", op: ">=", value: 0.05 }
+            - { kind: threshold, expr: "Q_V2_mV", op: ">=", value: 0.05 }

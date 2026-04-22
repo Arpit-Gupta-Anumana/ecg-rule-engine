@@ -1,0 +1,90 @@
+disease: PediatricRVH
+manual_source: "12SL Physicians Guide v24, §3.7.3.9.1 p.93"
+description: >
+  Pediatric right ventricular hypertrophy. Manual: "R amplitude in V1 large
+  for age, or QR pattern in V1. RVH with repol if ST downsloping with inverted
+  T in V1-V3. RVH with strain if T < -200 µV in >= 2 of V1-V3."
+manual_departure_notes: |
+  "Large R in V1 for age" is operationalized as R_V1_mV > 1.0 mV (project
+  spec). Neonatal normal voltages can exceed this; the cutoff targets post-
+  neonatal interpretation and is not from a GE numeric table in the excerpt.
+
+  QR in V1: Q_V1_mV > 0.05 mV AND R_V1_mV > S_V1_mV (project spec). The 0.05 mV
+  Q-amplitude floor excludes noise; not verbatim manual text.
+
+  RVH with repolarization abnormality: "ST downsloping" is not slope-parsed;
+  encoded as J-point ST depression <= -0.05 mV together with T < 0 in the
+  same lead, in at least two of V1–V3 (operationalization).
+
+  Strain: T < -200 µV = T_mV < -0.20 mV (manual) in >= 2 of V1–V3.
+exclusions: []
+sex_specific: false
+variants:
+  - name: RVH_large_R_V1_ped
+    manual_page: 93
+    description: "R_V1 > 1.0 mV (voltage-for-age proxy); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "R_V1_mV", op: ">", value: 1.0 }
+
+  - name: RVH_QR_pattern_V1_ped
+    manual_page: 93
+    description: "Q_V1 > 0.05 mV and R_V1 > S_V1 (QR pattern proxy); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "Q_V1_mV", op: ">", value: 0.05 }
+        - { kind: threshold, expr: "R_V1_mV - S_V1_mV", op: ">", value: 0 }
+
+  - name: RVH_with_repol_ped
+    manual_page: 93
+    description: >
+      STJ <= -0.05 mV and T < 0 in >= 2 of V1–V3 (ST/T repol proxy); age <= 15 y.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - points: 1
+              note: "V1: ST depression and inverted T"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "STJ_V1_mV", op: "<=", value: -0.05 }
+                  - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0 }
+            - points: 1
+              note: "V2: ST depression and inverted T"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "STJ_V2_mV", op: "<=", value: -0.05 }
+                  - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0 }
+            - points: 1
+              note: "V3: ST depression and inverted T"
+              when:
+                kind: all_of
+                clauses:
+                  - { kind: threshold, expr: "STJ_V3_mV", op: "<=", value: -0.05 }
+                  - { kind: threshold, expr: "T_V3_mV", op: "<", value: 0 }
+
+  - name: RVH_with_strain_ped
+    manual_page: 93
+    description: "T <= -0.20 mV in >= 2 of V1–V3 (manual strain voltage); age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - points: 1
+              when: { kind: threshold, expr: "T_V1_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_V2_mV", op: "<=", value: -0.20 }
+            - points: 1
+              when: { kind: threshold, expr: "T_V3_mV", op: "<=", value: -0.20 }

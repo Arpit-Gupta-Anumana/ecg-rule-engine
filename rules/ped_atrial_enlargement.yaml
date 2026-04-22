@@ -1,0 +1,56 @@
+disease: PediatricAtrialEnlargement
+manual_source: "12SL Physicians Guide v24, §3.7.3.3 p.87"
+description: >
+  Pediatric atrial enlargement. Manual: "RAE requires P wave amplitude > 250 µV
+  in any of the standard 12 leads. LAE requires a large positive P wave in lead
+  II or a biphasic P wave in V1 with a large negative P'."
+manual_departure_notes: |
+  RAE: 250 µV = 0.25 mV (manual); encoded in all 12 leads (I, II, III, aVR,
+  aVL, aVF, V1–V6).
+
+  LAE: "Large positive P in II" is operationalized as P_II_mV > 0.25 mV (same
+  0.25 mV literature cutoff as right-atrial P-voltage criteria in adults,
+  e.g. Surawicz & Knilans / Chou’s Electrocardiography — P_II amplitude for
+  LAE often cited ≥2.5 mm). This is a literature proxy; the manual does not
+  give a millivolt value for "large" in II.
+
+  "Large negative P'" in V1 (terminal negative component of biphasic P) is
+  approximated with P_V1_mV < -0.10 mV when the net measured P in V1 is
+  negative (Morris / terminal P force proxy; magnitude threshold not in the
+  cited pediatric manual text).
+exclusions: []
+sex_specific: false
+variants:
+  - name: RAE_ped
+    manual_page: 87
+    description: "P > 0.25 mV in any of the 12 standard leads."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "P_I_mV",   op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_II_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_III_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_aVR_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_aVL_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_aVF_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V1_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V2_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V3_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V4_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V5_mV",  op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V6_mV",  op: ">", value: 0.25 }
+
+  - name: LAE_ped
+    manual_page: 87
+    description: "Large P in II (> 0.25 mV) OR terminal negative P in V1 (< -0.10 mV)."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          clauses:
+            - { kind: threshold, expr: "P_II_mV", op: ">", value: 0.25 }
+            - { kind: threshold, expr: "P_V1_mV", op: "<", value: -0.10 }

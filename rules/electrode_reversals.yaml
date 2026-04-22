@@ -1,0 +1,25 @@
+disease: ElectrodeReversals
+manual_source: "12SL Physicians Guide v24, §3.7.2.1 p.55-56"
+description: >
+  Limb or precordial electrode reversals. The manual gives no numeric thresholds
+  and indicates to skip when pacing or ST elevation injury is present; detection
+  relies on proprietary lead-comparison logic not represented here.
+manual_departure_notes: >
+  Stub only: electrode reversal detection in 12SL uses proprietary lead-comparison
+  algorithms and pattern checks that are not available in our public feature set.
+  This variant is pinned false (impossible threshold) so the disease never fires
+  until a dedicated model is integrated. A production stack should skip evaluation
+  when paced_flag is set or when ST elevation injury rules have fired, per the
+  manual preamble to §3.7.2.1.
+exclusions: []
+sex_specific: false
+variants:
+  - name: Electrode_reversal_stub
+    manual_page: 55
+    description: >
+      Always false: ventricular_rate_bpm < −999. Placeholder until lead-swap logic exists.
+    clause:
+      kind: threshold
+      expr: "ventricular_rate_bpm"
+      op: "<"
+      value: -999

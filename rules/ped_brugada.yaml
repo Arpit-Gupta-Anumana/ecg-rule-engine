@@ -1,0 +1,50 @@
+disease: PediatricBrugada
+manual_source: "12SL Physicians Guide v24, §3.7.3.7 p.89"
+description: >
+  Pediatric Brugada pattern type 1. Manual: test skipped if WPW/DEXTRO, QRS
+  > 150 ms, ventricular rate > 150 bpm, or age < 5. "Brugada type 1: J-point
+  or ST elevation >= 200 µV (0.20 mV) in V1 or V2, followed by negative T."
+manual_departure_notes: |
+  "Coved" ST morphology is not distinguished; only STJ amplitude and T polarity
+  are used (same limitation as adult Brugada YAML in this repo).
+
+  Dextrocardia skip is stated in the manual; no dextrocardia feature exists in
+  the registry — orchestration should apply the pediatric dextrocardia rule or
+  manual flags if available.
+
+  Age range 5–15 years is explicit in the manual skip list (age < 5) combined
+  with the pediatric program gate (age <= 15).
+
+  ST elevation threshold 200 µV = 0.20 mV (manual). T "negative" is encoded
+  as T_mV < 0 (strictly below isoelectric); the manual does not give a millivolt
+  depth cutoff for "negative T."
+exclusions: []
+sex_specific: false
+variants:
+  - name: Brugada_type1_V1_ped
+    manual_page: 89
+    description: "STJ >= 0.20 mV in V1 and T_V1 < 0; age 5–15 y; QRS <= 150; HR <= 150; not WPW."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program upper age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Manual skip: age < 5", expr: "age_years", op: ">=", value: 5 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "QRS_ms", op: "<=", value: 150 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 150 }
+        - { kind: threshold, expr: "STJ_V1_mV", op: ">=", value: 0.20 }
+        - { kind: threshold, expr: "T_V1_mV", op: "<", value: 0 }
+
+  - name: Brugada_type1_V2_ped
+    manual_page: 89
+    description: "STJ >= 0.20 mV in V2 and T_V2 < 0; age 5–15 y; QRS <= 150; HR <= 150; not WPW."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program upper age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, note: "Manual skip: age < 5", expr: "age_years", op: ">=", value: 5 }
+        - { kind: threshold, note: "Skip if WPW (manual)", expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "QRS_ms", op: "<=", value: 150 }
+        - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 150 }
+        - { kind: threshold, expr: "STJ_V2_mV", op: ">=", value: 0.20 }
+        - { kind: threshold, expr: "T_V2_mV", op: "<", value: 0 }

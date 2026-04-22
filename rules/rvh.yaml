@@ -1,0 +1,115 @@
+disease: RVH
+manual_source: "12SL Physicians Guide v24, §3.7.2.9.1 p.63"
+description: >
+  Right ventricular hypertrophy. The manual distinguishes two pathways:
+    1. RBBB + R or R' > 1500 uV in V1 + QRS axis > 110 deg -> "RBBB with RVH"
+       statement (encoded as variant `RVH_with_RBBB`).
+    2. In the absence of RBBB, a standard RVH point-style test considering:
+       R or R' in V1, S in V5 or V6, rightward QRS axis, right atrial
+       enlargement, patient age, and the S1-S2-S3 pattern. "Depending on the
+       level to which these characteristics exist" either "Possible RVH" or
+       "RVH" is stated.
+  Tests are skipped if WPW or Brugada are detected, if QRS is negative in V1
+  (specifically S amplitude > 100 uV in V1 in the manual's wording), or if
+  QRS axis < 60 degrees.
+manual_departure_notes: |
+  The manual is qualitative for the non-RBBB pathway ("depending on the
+  level"). We encode a literature-standard test: any 2 of 4 of the
+  quantifiable items below -> "Possible RVH", any 3 of 4 -> "RVH". The
+  axis-gate and "S > 100 uV in V1" skip conditions are implemented as an
+  `all_of` pre-check inside each non-RBBB variant. Right atrial enlargement
+  and S1-S2-S3 pattern are cross-rule dependencies we approximate: RAE is
+  checked via `P_V1_mV > 0.25` (part of the atrial-enlargement rule) and
+  S1-S2-S3 as "S in each of I, II, III >= 0.1 mV".
+exclusions: [WPW, Paced]
+variants:
+  - name: RVH_with_RBBB
+    manual_page: 63
+    description: >
+      RBBB + V1 R or R' > 1.5 mV + QRS axis > 110 deg.
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "rbbb_flag",    op: ">=", value: 1   }
+        - { kind: threshold, expr: "R_V1_mV",      op: ">",  value: 1.5 }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">",  value: 110 }
+
+  - name: RVH_voltage_axis
+    manual_page: 63
+    description: >
+      Non-RBBB pathway, 3-of-4 positivity:
+        (a) R or R' in V1 >= 0.7 mV
+        (b) S in V5 or V6 >= 0.7 mV
+        (c) Rightward QRS axis >= 100 deg
+        (d) Suggestive P in V1 >= 0.25 mV (RAE proxy) OR S1-S2-S3 pattern.
+      All 4 -> stronger RVH; 2 -> "Possible RVH" (encoded separately).
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "RBBB skip gate",         expr: "rbbb_flag",    op: "<", value: 1 }
+        - { kind: threshold, note: "Skip if QRS axis < 60",  expr: "QRS_axis_deg", op: ">=", value: 60 }
+        - { kind: threshold, note: "Skip if V1 S > 0.1 mV",  expr: "S_V1_mV",      op: "<",  value: 0.1 }
+        - kind: point_score
+          threshold_positive: 3
+          items:
+            - points: 1
+              note: "R or R' in V1 >= 0.7 mV"
+              when:
+                kind: threshold
+                expr: "R_V1_mV"
+                op: ">="
+                value: 0.7
+            - points: 1
+              note: "S in V5 or V6 >= 0.7 mV"
+              when:
+                kind: threshold
+                expr: "max(S_V5_mV, S_V6_mV)"
+                op: ">="
+                value: 0.7
+            - points: 1
+              note: "Rightward QRS axis >= 100 deg"
+              when:
+                kind: threshold
+                expr: "QRS_axis_deg"
+                op: ">="
+                value: 100
+            - points: 1
+              note: "RAE proxy (P_V1 >= 0.25 mV) OR S1S2S3 pattern"
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "P_V1_mV", op: ">=", value: 0.25 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "S_I_mV",   op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_II_mV",  op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }
+
+  - name: Possible_RVH_voltage_axis
+    manual_page: 63
+    description: "Same item set as RVH_voltage_axis but threshold >= 2."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, expr: "rbbb_flag",    op: "<",  value: 1   }
+        - { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 60  }
+        - { kind: threshold, expr: "S_V1_mV",      op: "<",  value: 0.1 }
+        - kind: point_score
+          threshold_positive: 2
+          items:
+            - points: 1
+              when: { kind: threshold, expr: "R_V1_mV",      op: ">=", value: 0.7 }
+            - points: 1
+              when: { kind: threshold, expr: "max(S_V5_mV, S_V6_mV)", op: ">=", value: 0.7 }
+            - points: 1
+              when: { kind: threshold, expr: "QRS_axis_deg", op: ">=", value: 100 }
+            - points: 1
+              when:
+                kind: any_of
+                clauses:
+                  - { kind: threshold, expr: "P_V1_mV", op: ">=", value: 0.25 }
+                  - kind: all_of
+                    clauses:
+                      - { kind: threshold, expr: "S_I_mV",   op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_II_mV",  op: ">=", value: 0.1 }
+                      - { kind: threshold, expr: "S_III_mV", op: ">=", value: 0.1 }

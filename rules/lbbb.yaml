@@ -1,0 +1,66 @@
+disease: LBBB
+manual_source: "12SL Physicians Guide v24, §3.7.2.8.1.2 p.60 and §3.7.3.8.2 p.92"
+description: >
+  Left bundle branch block. The manual gives a morphology description only:
+  "wide QRS, predominantly upright QRS with wide R and/or R' in lateral leads
+  (I and V6), and predominantly negative QRS in leads V1 and V2 with wide Q
+  or S waves." No numeric thresholds are published in the Physician's Guide.
+  Exclusions: WPW and ventricular pacing (either obscures native conduction).
+manual_departure_notes: |
+  Numeric and amplitude cutoffs below are NOT quoted from the GE manual—they
+  operationalize the qualitative morphology text where 12SL relies on internal
+  detectors we do not have.
+
+  - "Wide QRS" is implemented as QRS >= 120 ms, matching the widely cited
+    AHA/ACCF/HRS 2009 definition of complete bundle-branch block (the GE
+    manual does not state a millisecond cutoff in §3.7.2.8.1.2).
+
+  - V1 "predominantly negative ... wide Q or S" is approximated with two limbs:
+    (1) deep S relative to R: S_V1 - R_V1 >= 0.3 mV, or (2) QS morphology:
+    Q_V1 >= 0.3 mV with R_V1 < 0.1 mV.
+
+  - Lateral "upright" dominance in lead I is implemented as R_I > S_I.
+
+  - Absent septal forces in V6 (no pathologic septal q) is approximated as
+    Q_V6 < 0.04 mV to help separate typical LBBB from LVH with wide QRS.
+
+  Results on any external dataset measure fidelity of these operationalizations
+  to GE's proprietary morphology pipeline—not "tuning" of the manual text.
+exclusions: [WPW, Paced]
+variants:
+  - name: LBBB_standard
+    manual_page: 60
+    description: >
+      Morphology per §3.7.2.8.1.2 / §3.7.3.8.2, with operationalization as
+      described in manual_departure_notes (not from numeric tables in the Guide).
+    clause:
+      kind: all_of
+      clauses:
+        - kind: threshold
+          note: "Wide QRS (operationalized as >= 120 ms; see manual_departure_notes)"
+          expr: "QRS_ms"
+          op: ">="
+          value: 120
+        - kind: threshold
+          note: "Predominantly upright in lead I (R_I > S_I)"
+          expr: "R_I_mV - S_I_mV"
+          op: ">"
+          value: 0
+        - kind: any_of
+          note: "V1 predominantly negative (wide S or wide Q—operationalized)"
+          clauses:
+            - kind: threshold
+              note: "Deep S in V1 limb"
+              expr: "S_V1_mV - R_V1_mV"
+              op: ">="
+              value: 0.3
+            - kind: all_of
+              note: "QS limb in V1"
+              clauses:
+                - { kind: threshold, expr: "Q_V1_mV", op: ">=", value: 0.3 }
+                - { kind: threshold, expr: "R_V1_mV", op: "<",  value: 0.1 }
+        - kind: threshold
+          note: "Absent septal Q in V6 (operationalization; see manual_departure_notes)"
+          expr: "Q_V6_mV"
+          op: "<"
+          value: 0.04

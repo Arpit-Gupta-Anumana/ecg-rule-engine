@@ -1,0 +1,18 @@
+disease: PedNonspecificBlock
+manual_source: "12SL Physicians Guide v24, §3.7.3.8.3 p.93"
+description: >
+  If conduction abnormality is not cited and QRS is wide for age, state IVCD/IVCB.
+  Encoded as QRS > 100 ms with neither RBBB nor LBBB flags, age <= 15 y.
+exclusions: []
+sex_specific: false
+variants:
+  - name: IVCD_IVCB_ped_wide_QRS_no_BBB
+    manual_page: 93
+    description: "QRS_ms > 100; rbbb_flag and lbbb_flag inactive; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "QRS_ms", op: ">", value: 100 }
+        - { kind: threshold, note: "RBBB not stated", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "LBBB not stated", expr: "lbbb_flag", op: "<", value: 1 }

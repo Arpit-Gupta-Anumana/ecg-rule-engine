@@ -1,0 +1,64 @@
+disease: PediatricProlongedQT
+manual_source: "12SL Physicians Guide v24, §3.7.3.15 p.112"
+description: >
+  Pediatric QTc prolongation. Manual: skip if WPW, IVCB, RBBB, LBBB, QRS >= 120 ms;
+  skip if rate > 180 bpm (ages 3–15). QTc >= 480 ms → Prolonged QT; QTc 460–479 ms
+  → Borderline Prolonged QT.
+manual_departure_notes: |
+  QTc is evaluated with QTc_Bazett_ms (same convention as adult prolonged_qt.yaml
+  in this repo).
+
+  Skip conditions use feature flags: wpw_flag, ivcb_flag, rbbb_flag, lbbb_flag,
+  paced_flag — each required inactive (< 1). QRS skip is QRS_ms < 120.
+
+  Heart-rate skip for rate > 180 bpm applies only when age is in 3–15 years
+  (manual). Operationalized as: allow evaluation when (age_years < 3 OR
+  ventricular_rate_bpm <= 180).
+
+  Numeric QTc cutoffs 480 ms and 460–479 ms are verbatim from the manual excerpt.
+
+  IVCB flag semantics match prolonged_qt.yaml (IVCD / ILBBB / IRBBB proxy on
+  some datasets).
+exclusions: []
+sex_specific: false
+variants:
+  - name: QTc_prolonged_ped
+    manual_page: 112
+    description: "QTc (Bazett) >= 480 ms with all manual skip gates; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          note: "Skip if HR > 180 bpm for ages 3–15 only — pass if under 3 y or HR <= 180"
+          clauses:
+            - { kind: threshold, expr: "age_years", op: "<", value: 3 }
+            - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 180 }
+        - { kind: threshold, expr: "QTc_Bazett_ms", op: ">=", value: 480 }
+        - { kind: threshold, expr: "QRS_ms", op: "<", value: 120 }
+        - { kind: threshold, expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "ivcb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "paced_flag", op: "<", value: 1 }
+
+  - name: QTc_borderline_ped
+    manual_page: 112
+    description: "QTc (Bazett) in [460, 479] ms with all manual skip gates; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          note: "Skip if HR > 180 bpm for ages 3–15 only"
+          clauses:
+            - { kind: threshold, expr: "age_years", op: "<", value: 3 }
+            - { kind: threshold, expr: "ventricular_rate_bpm", op: "<=", value: 180 }
+        - { kind: threshold, expr: "QTc_Bazett_ms", op: ">=", value: 460 }
+        - { kind: threshold, expr: "QTc_Bazett_ms", op: "<", value: 480 }
+        - { kind: threshold, expr: "QRS_ms", op: "<", value: 120 }
+        - { kind: threshold, expr: "wpw_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "ivcb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "lbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, expr: "paced_flag", op: "<", value: 1 }

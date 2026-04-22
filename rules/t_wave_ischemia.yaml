@@ -1,0 +1,102 @@
+disease: TWaveIschemia
+manual_source: "12SL Physicians Guide v24, §3.7.2.13.1 p.80-81"
+description: >
+  T-wave inversion patterns suggestive of ischemia. The manual gives explicit
+  numeric thresholds:
+
+    * "Less severe": two or more leads with T amplitude < -100 uV (-0.10 mV)
+    * "Marked":      two or more leads with T amplitude < -500 uV (-0.50 mV)
+
+  Applied per anatomic region: anterior (V2-V4), lateral (I, aVL, V5, V6),
+  inferior (II, III, aVF). Lead groups are combined in the post-pass (anterior
+  + lateral -> anterolateral, inferior + lateral -> inferolateral).
+manual_departure_notes: >
+  Gating exclusions that the manual applies - "do not test for ischemia if any
+  injury statement has been made; likewise if LVH with repolarization
+  abnormality is stated; T-wave abnormalities are not tested in lead groups
+  where infarction is stated" - are NOT encoded here as rule exclusions because
+  they depend on the outputs of other rules.  They are handled in the
+  statement-suppression post-pass instead.  The anterior region in the manual
+  has additional exclusions (PMI, Brugada, RBBB, RVH-with-repol) that are also
+  deferred to the post-pass.  Normal adolescent anterior T inversion in V1-V3
+  (juvenile T pattern) is NOT excluded here - that nuance can be added via an
+  age gate if false-positive rates in young patients are too high.
+exclusions: [LBBB, WPW, Paced]
+sex_specific: false
+variants:
+
+  - name: Anterior_T_Inversion
+    manual_page: 80
+    description: >
+      T < -0.10 mV in >= 2 of V2-V4 (less severe tier). V1 is excluded
+      because juvenile T-inversion in V1 is physiologic in many patients.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_V2_mV", op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V3_mV", op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V4_mV", op: "<=", value: -0.10 } }
+
+  - name: Anterior_T_Inversion_Marked
+    manual_page: 81
+    description: >
+      T < -0.50 mV in >= 2 of V2-V4 (more severe "marked" tier).
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_V2_mV", op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V3_mV", op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V4_mV", op: "<=", value: -0.50 } }
+
+  - name: Lateral_T_Inversion
+    manual_page: 80
+    description: >
+      T < -0.10 mV in >= 2 of I, aVL, V5, V6 (less severe).
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_I_mV",   op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_aVL_mV", op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V5_mV",  op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V6_mV",  op: "<=", value: -0.10 } }
+
+  - name: Lateral_T_Inversion_Marked
+    manual_page: 81
+    description: >
+      T < -0.50 mV in >= 2 of I, aVL, V5, V6 (marked).
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_I_mV",   op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_aVL_mV", op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V5_mV",  op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_V6_mV",  op: "<=", value: -0.50 } }
+
+  - name: Inferior_T_Inversion
+    manual_page: 80
+    description: >
+      T < -0.10 mV in >= 2 of II, III, aVF (less severe). Note: T inversion in
+      III alone is a common normal variant, hence the two-lead requirement.
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_II_mV",  op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_III_mV", op: "<=", value: -0.10 } }
+        - { points: 1, when: { kind: threshold, expr: "T_aVF_mV", op: "<=", value: -0.10 } }
+
+  - name: Inferior_T_Inversion_Marked
+    manual_page: 81
+    description: >
+      T < -0.50 mV in >= 2 of II, III, aVF (marked).
+    clause:
+      kind: point_score
+      threshold_positive: 2
+      items:
+        - { points: 1, when: { kind: threshold, expr: "T_II_mV",  op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_III_mV", op: "<=", value: -0.50 } }
+        - { points: 1, when: { kind: threshold, expr: "T_aVF_mV", op: "<=", value: -0.50 } }

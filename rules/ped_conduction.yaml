@@ -1,0 +1,94 @@
+disease: PediatricConduction
+manual_source: "12SL Physicians Guide v24, §3.7.3.8.1–8.3 pp.90–92"
+description: >
+  Pediatric intraventricular conduction. RBBB: wide QRS for age with terminal
+  forces rightward in V1. LBBB: wide QRS for age with lateral upright lead I
+  and negative V1. Nonspecific IVCB/IVCD: wide QRS for age without RBBB or LBBB
+  pattern.
+manual_departure_notes: |
+  The manual gives qualitative morphology for bundle-branch patterns; millisecond
+  "wide for age" cutoffs in the Guide tables were not supplied here.
+
+  QRS width is approximated per project instruction as:
+    - age_years > 3: QRS_ms > 100
+    - age_years in [1, 3]: QRS_ms > 90
+    - age_years < 1: QRS_ms > 90 (same ms threshold as 1–3 y; neonatal QRS
+      duration norms are shorter — this is an explicit coarse approximation).
+
+  RBBB terminal rightward slowing is operationalized as R_V1_mV > S_V1_mV
+  (project spec); this is weaker than a true R' morphology detector.
+
+  LBBB: lateral upright as R_I_mV > S_I_mV; V1 negative as S_V1_mV > R_V1_mV
+  (project spec), without the adult rule’s deep-S millivolt cutoffs.
+
+  Nonspecific block uses QRS_ms > 100 with rbbb_flag and lbbb_flag inactive
+  (project spec); this duplicates the "wide" approximation for ages > 3 only
+  in spirit — a single 100 ms cut is used for IVCB to match the spec, not the
+  90 ms used for ages 1–3 in BBB variants.
+
+  AHA/ACCF/HRS 2009 complete BBB definitions (120 ms) are not used here
+  because the pediatric operationalization explicitly requested 100/90 ms.
+exclusions: []
+sex_specific: false
+variants:
+  - name: RBBB_ped
+    manual_page: 90
+    description: "Wide QRS for age + R_V1 > S_V1; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          note: "Wide QRS for age (operationalized)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: ">", value: 3 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 100 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: ">=", value: 1 }
+                - { kind: threshold, expr: "age_years", op: "<=", value: 3 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 90 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: "<", value: 1 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 90 }
+        - { kind: threshold, expr: "R_V1_mV - S_V1_mV", op: ">", value: 0 }
+
+  - name: LBBB_ped
+    manual_page: 91
+    description: "Wide QRS for age + R_I > S_I + S_V1 > R_V1; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - kind: any_of
+          note: "Wide QRS for age (operationalized)"
+          clauses:
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: ">", value: 3 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 100 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: ">=", value: 1 }
+                - { kind: threshold, expr: "age_years", op: "<=", value: 3 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 90 }
+            - kind: all_of
+              clauses:
+                - { kind: threshold, expr: "age_years", op: "<", value: 1 }
+                - { kind: threshold, expr: "QRS_ms", op: ">", value: 90 }
+        - { kind: threshold, expr: "R_I_mV - S_I_mV", op: ">", value: 0 }
+        - { kind: threshold, expr: "S_V1_mV - R_V1_mV", op: ">", value: 0 }
+
+  - name: Nonspecific_IVCB_ped
+    manual_page: 92
+    description: "QRS > 100 ms without RBBB/LBBB flags; age <= 15 y."
+    clause:
+      kind: all_of
+      clauses:
+        - { kind: threshold, note: "Pediatric program age gate", expr: "age_years", op: "<=", value: 15 }
+        - { kind: threshold, expr: "QRS_ms", op: ">", value: 100 }
+        - { kind: threshold, note: "RBBB not stated", expr: "rbbb_flag", op: "<", value: 1 }
+        - { kind: threshold, note: "LBBB not stated", expr: "lbbb_flag", op: "<", value: 1 }
