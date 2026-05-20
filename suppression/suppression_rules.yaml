@@ -1,0 +1,480 @@
+# ============================================================================
+# POST-PREDICTION SUPPRESSION RULES
+# ============================================================================
+# Source: GE 12SL Physician's Guide v24, Sections 3.7, 3.8, 3.12
+# Reference: Suppression_Rules_chatECG_V2_Model.txt
+#
+# These rules run AFTER the model produces predictions for all abnormalities.
+# They resolve conflicts where two findings cannot clinically coexist.
+#
+# STRUCTURE:
+#   priority_tiers    - which labels win on conflict (lower number = higher priority)
+#   measurement_gates - measurement thresholds that override model predictions
+#   rhythm_assembly   - how base rhythm + heart rate → final rhythm label
+#   intra_head_rules  - assembly/suppression within the same label family
+#   cross_head_rules  - when label A is ON, suppress label B
+#   concordance_rules - label displayed ONLY when multiple signals agree
+#   screening_mode    - optional high-specificity suppressions
+# ============================================================================
+
+# ── PRIORITY TIERS (lower = higher priority, wins conflicts) ────────────────
+priority_tiers:
+  1: [Paced]
+  2: [WPW]
+  3: [3rd Degree AV Block]
+  4: [Afib, Flutter, SVT, Junctional, Wide QRS, Sinus, Ectropic Atrial]
+  5: [AV_BLOCK_1st Degree AV Block, AV_BLOCK_2nd Degree AV Block Mobitz I,
+      "AV_BLOCK_2:1 a-v conduction", "AV_BLOCK_3:1 a-v conduction",
+      "AV_BLOCK_4:1 a-v conduction", "AV_BLOCK_5:1 a-v conduction"]
+  6: [Bifascicular block, Left Bundle Branch Block, Right Bundle Branch Block,
+      Incomplete LBBB, Incomplete RBBB,
+      Left Anterior Fascicular Block, Left Posterior Fascicular Block, NICD]
+  7: [Biatrial Enlargement, Left Atrial Enlargement, Right Atrial Enlargement,
+      Left Ventricular Hypertrophy, Right Ventricular Hypertrophy]
+  8: [Acute MI Anterior, Acute MI Septal, Acute MI Lateral,
+      Acute MI Inferior, Acute MI Posterior]
+  9: [Old MI]
+  10: [ST_ST Elevation, ST_ST Depression, T Wave Inversion,
+       Early Repolarization Pattern, Brugada Syndrome Pattern]
+  11: [Premature Atrial Complex, Premature Junctional Complexes,
+       Premature Ventricular Complex, Bigeminy, Trigeminy]
+
+# ── MEASUREMENT GATES ───────────────────────────────────────────────────────
+# These use the regression measurements to validate/override model predictions
+measurement_gates:
+
+  rate_bands:
+    bradycardia:  { max: 60 }     # bpm < 60
+    normal:       { min: 60, max: 100 }
+    tachycardia:  { min: 100 }    # bpm > 100
+
+  qrs_width:
+    narrow:       { max: 110 }    # QRSd < 110 ms
+    borderline:   { min: 110, max: 120 }
+    wide:         { min: 120 }    # QRSd >= 120 ms
+
+  pr_threshold:
+    first_degree: 210             # PR >= 210 ms (12SL FAV style)
+
+  axis_bins:
+    normal:       { min: -30, max: 90 }
+    LAD:          { min: -90, max: -30 }
+    RAD:          { min: 90, max: 180 }
+    extreme:      { min: -180, max: -90 }  # equivalently 180..270
+
+  # If class disagrees with regression-derived bin by > 20 degrees
+  # across a boundary, suppress class and use regression bin only
+  axis_class_vs_regression_tolerance: 20
+
+# ── RHYTHM ASSEMBLY ─────────────────────────────────────────────────────────
+# Combines base rhythm class + heart rate → final displayed rhythm label
+rhythm_assembly:
+  bases:
+    - base: Sinus
+      rate_conditions:
+        - { min_bpm: 60, max_bpm: 100, label: "Sinus Rhythm" }
+        - { min_bpm: 100, label: "Sinus Tachycardia" }
+        - { max_bpm: 60, label: "Sinus Bradycardia" }
+
+    - base: Afib
+      rate_conditions:
+        - { min_bpm: 60, max_bpm: 100, label: "Atrial Fibrillation" }
+        - { max_bpm: 60, label: "Atrial Fibrillation with Slow Ventricular Response" }
+        - { min_bpm: 100, label: "Atrial Fibrillation with Rapid Ventricular Response" }
+
+    - base: Flutter
+      rate_conditions:
+        - { min_bpm: 60, max_bpm: 100, label: "Atrial Flutter" }
+        - { max_bpm: 60, label: "Atrial Flutter with Slow Ventricular Response" }
+        - { min_bpm: 100, label: "Atrial Flutter with Rapid Ventricular Response" }
+
+    - base: SVT
+      rate_conditions:
+        - { min_bpm: 150, max_qrs: 120, label: "Supraventricular Tachycardia" }
+
+    - base: Junctional
+      rate_conditions:
+        - { max_bpm: 45, label: "Suspected Junctional Bradycardia" }
+        - { min_bpm: 45, max_bpm: 65, label: "Suspected Junctional Rhythm" }
+        - { min_bpm: 66, max_bpm: 100, label: "Suspected Accelerated Junctional Rhythm" }
+
+    - base: Wide QRS
+      rate_conditions:
+        - { max_bpm: 40, min_qrs: 120, label: "Idioventricular Rhythm" }
+        - { min_bpm: 40, max_bpm: 100, min_qrs: 120, label: "Wide-QRS Rhythm" }
+        - { min_bpm: 100, min_qrs: 120, label: "Wide-QRS Tachycardia" }
+
+    - base: Paced
+      rate_conditions:
+        - { label: "Paced Rhythm" }
+
+    - base: Ectropic Atrial
+      rate_conditions:
+        - { label: "Ectopic Atrial Rhythm" }
+
+  # SVT overrides Sinus Tachycardia when bpm >= 150 and narrow QRS
+  overrides:
+    - if_both: [SVT, Sinus]
+      condition: { min_bpm: 150, max_qrs: 120 }
+      keep: SVT
+      suppress: Sinus
+
+# ── INTRA-HEAD RULES ────────────────────────────────────────────────────────
+
+conduction_assembly:
+  # Complete vs Incomplete BBB decided by QRS width
+  bbb_completeness:
+    - label: Left Bundle Branch Block
+      when_qrs_wide: "Complete LBBB"      # QRS >= 120
+      when_qrs_narrow: "Incomplete LBBB"  # QRS < 120
+
+    - label: Right Bundle Branch Block
+      when_qrs_wide: "Complete RBBB"      # QRS >= 120
+      when_qrs_narrow: "Incomplete RBBB"  # QRS < 120
+
+  # RBBB and LBBB cannot both be primary — keep higher-scoring
+  mutual_exclusion: [Left Bundle Branch Block, Right Bundle Branch Block]
+
+  # Bifascicular = Complete RBBB + LAFB (or LPFB)
+  bifascicular:
+    - components: [Right Bundle Branch Block, Left Anterior Fascicular Block]
+      requires_qrs_wide: true
+      emits: "Bifascicular Block (RBBB + LAFB)"
+      suppresses: [Right Bundle Branch Block, Left Anterior Fascicular Block]
+
+    - components: [Right Bundle Branch Block, Left Posterior Fascicular Block]
+      requires_qrs_wide: true
+      emits: "Bifascicular Block (RBBB + LPFB)"
+      suppresses: [Right Bundle Branch Block, Left Posterior Fascicular Block]
+
+  # Trifascicular = Bifascicular + 1st Degree AV Block
+  trifascicular:
+    - components: [Right Bundle Branch Block, Left Anterior Fascicular Block,
+                   AV_BLOCK_1st Degree AV Block]
+      requires_qrs_wide: true
+      requires_pr_long: true            # PR >= 210 ms
+      emits: "Trifascicular Block (RBBB + LAFB + 1° AVB)"
+      suppresses: [Right Bundle Branch Block, Left Anterior Fascicular Block,
+                   AV_BLOCK_1st Degree AV Block, "Bifascicular Block (RBBB + LAFB)"]
+
+    - components: [Right Bundle Branch Block, Left Posterior Fascicular Block,
+                   AV_BLOCK_1st Degree AV Block]
+      requires_qrs_wide: true
+      requires_pr_long: true
+      emits: "Trifascicular Block (RBBB + LPFB + 1° AVB)"
+      suppresses: [Right Bundle Branch Block, Left Posterior Fascicular Block,
+                   AV_BLOCK_1st Degree AV Block, "Bifascicular Block (RBBB + LPFB)"]
+
+  # NICD: only when no BBB/fascicular fires AND QRS > 105 ms
+  nicd:
+    requires_qrs_gt_ms: 105
+    blocked_by: [Left Bundle Branch Block, Right Bundle Branch Block,
+                 Incomplete LBBB, Incomplete RBBB,
+                 Left Anterior Fascicular Block, Left Posterior Fascicular Block]
+    blocked_by_rhythm: [Paced, WPW]
+    emits: "NICD"
+
+chamber_assembly:
+  # BAE = LAE + RAE → suppress components
+  biatrial:
+    components: [Left Atrial Enlargement, Right Atrial Enlargement]
+    emits: Biatrial Enlargement
+    suppresses: [Left Atrial Enlargement, Right Atrial Enlargement]
+
+  # LAE/RAE only valid in rhythms with visible P waves
+  p_wave_rhythms: [Sinus, Ectropic Atrial]
+  suppress_without_p: [Left Atrial Enlargement, Right Atrial Enlargement,
+                       Biatrial Enlargement]
+
+  # Biventricular hypertrophy: skip if RBBB
+  biventricular:
+    components: [Left Ventricular Hypertrophy, Right Ventricular Hypertrophy]
+    blocked_by: [Right Bundle Branch Block]
+
+ectopy_rules:
+  # Bigeminy/Trigeminy require PAC or PVC to also fire
+  dependency:
+    - label: Bigeminy
+      requires_any: [Premature Atrial Complex, Premature Ventricular Complex]
+    - label: Trigeminy
+      requires_any: [Premature Atrial Complex, Premature Ventricular Complex]
+  # If both fire, keep higher-scoring, suppress other
+  mutual_exclusion: [Bigeminy, Trigeminy]
+
+mi_assembly:
+  # Combined territories: when two contiguous MI regions fire
+  combined_territories:
+    - components: [Acute MI Anterior, Acute MI Septal]
+      emits: "Acute Anteroseptal MI"
+      suppresses: [Acute MI Anterior, Acute MI Septal]
+
+    - components: [Acute MI Anterior, Acute MI Lateral]
+      emits: "Acute Anterolateral MI"
+      suppresses: [Acute MI Anterior, Acute MI Lateral]
+
+    - components: [Acute MI Inferior, Acute MI Lateral]
+      emits: "Acute Inferolateral MI"
+      suppresses: [Acute MI Inferior, Acute MI Lateral]
+
+    - components: [Acute MI Inferior, Acute MI Posterior]
+      emits: "Acute Inferoposterior MI"
+      suppresses: [Acute MI Inferior, Acute MI Posterior]
+
+  # Acute MI in a territory suppresses Old MI
+  acute_suppresses_old:
+    - if_any_acute: [Acute MI Anterior, Acute MI Septal, Acute MI Lateral,
+                     Acute MI Inferior, Acute MI Posterior]
+      suppresses: Old MI
+
+# ── CROSS-HEAD SUPPRESSION RULES ───────────────────────────────────────────
+# When label A is ON → suppress label B
+# This is the core conflict resolution table.
+cross_head_rules:
+
+  # Tier 1: Paced dominates everything
+  - when: Paced
+    suppress:
+      - WPW
+      - T Wave Inversion
+      - Early Repolarization Pattern
+      - Brugada Syndrome Pattern
+      - ST_ST Elevation
+      - ST_ST Depression
+      - Acute MI Anterior
+      - Acute MI Septal
+      - Acute MI Lateral
+      - Acute MI Inferior
+      - Acute MI Posterior
+      - Old MI
+      - Left Ventricular Hypertrophy
+      - Right Ventricular Hypertrophy
+      - Left Anterior Fascicular Block
+      - Left Posterior Fascicular Block
+      - Left Bundle Branch Block
+      - Right Bundle Branch Block
+      - Incomplete LBBB
+      - Incomplete RBBB
+      - NICD
+    manual_ref: "§3.12.2 — pacing drives depolarization; morphology invalid"
+
+  # Tier 2: WPW suppresses most morphology findings
+  - when: WPW
+    suppress:
+      - Left Ventricular Hypertrophy
+      - Right Ventricular Hypertrophy
+      - Left Anterior Fascicular Block
+      - Left Posterior Fascicular Block
+      - NICD
+      - Incomplete LBBB
+      - Incomplete RBBB
+      - Left Bundle Branch Block
+      - Right Bundle Branch Block
+      - Acute MI Anterior
+      - Acute MI Septal
+      - Acute MI Lateral
+      - Acute MI Inferior
+      - Acute MI Posterior
+      - Old MI
+      - ST_ST Elevation
+      - ST_ST Depression
+      - T Wave Inversion
+      - Early Repolarization Pattern
+      - Brugada Syndrome Pattern
+    manual_ref: "§3.7.2.2 — all further tests except QT skipped under WPW"
+
+  # Tier 3: 3rd Degree AV Block suppresses lower AV blocks
+  - when: AV_BLOCK_3rd Degree AV Block
+    suppress:
+      - AV_BLOCK_1st Degree AV Block
+      - AV_BLOCK_2nd Degree AV Block Mobitz I
+      - "AV_BLOCK_2:1 a-v conduction"
+      - "AV_BLOCK_3:1 a-v conduction"
+      - "AV_BLOCK_4:1 a-v conduction"
+      - "AV_BLOCK_5:1 a-v conduction"
+    manual_ref: "Complete AV dissociation supersedes lower-order blocks"
+
+  # AF / Flutter suppress 1st degree AVB and sinus labels
+  - when: Afib
+    suppress:
+      - AV_BLOCK_1st Degree AV Block
+      - Sinus
+    manual_ref: "PR not defined in AF; AF excludes sinus"
+
+  - when: Flutter
+    suppress:
+      - AV_BLOCK_1st Degree AV Block
+      - Sinus
+    manual_ref: "Flutter rarely coexists with PR prolongation"
+
+  # Ectopic Atrial suppresses Sinus
+  - when: Ectropic Atrial
+    suppress:
+      - Sinus
+    manual_ref: "Both imply atrial pacemaker; pick one"
+
+  # Wide-QRS Tachycardia suppresses SVT
+  - when: Wide QRS
+    condition: { min_qrs: 120 }
+    suppress:
+      - SVT
+    manual_ref: "Wide-complex tach supersedes narrow-complex SVT"
+
+  # Complete LBBB or RBBB suppress ST/T and voltage findings
+  - when: Left Bundle Branch Block
+    condition: { min_qrs: 120 }
+    suppress:
+      - ST_ST Elevation
+      - ST_ST Depression
+      - T Wave Inversion
+      - Early Repolarization Pattern
+      - Left Ventricular Hypertrophy
+      - Right Ventricular Hypertrophy
+      - NICD
+    manual_ref: "§3.7.3.11, §3.7.2.12 — BBB invalidates ST-T and voltage"
+
+  - when: Right Bundle Branch Block
+    condition: { min_qrs: 120 }
+    suppress:
+      - ST_ST Elevation
+      - ST_ST Depression
+      - T Wave Inversion
+      - Early Repolarization Pattern
+      - NICD
+    manual_ref: "§3.7.3.11 — RBBB suppresses ST elevation testing"
+
+  # Complete RBBB suppresses RAD and extreme axis
+  - when: Right Bundle Branch Block
+    condition: { min_qrs: 120 }
+    suppress:
+      - QRS_Axis_RAD
+      - QRS_Axis_Extreme
+    manual_ref: "§3.7.2.8.1.1 — RBBB suppresses right axis labels"
+
+  # LAFB suppresses LAD and Incomplete LBBB
+  - when: Left Anterior Fascicular Block
+    suppress:
+      - QRS_Axis_LAD
+      - Incomplete LBBB
+    manual_ref: "§3.7.2.8.3 — LAFB suppresses ILBBB and LAD"
+
+  # LPFB suppresses RAD
+  - when: Left Posterior Fascicular Block
+    suppress:
+      - QRS_Axis_RAD
+    manual_ref: "§3.7.2.8.3 — LPFB suppresses RAD"
+
+  # LVH suppresses LOWV, NICD
+  - when: Left Ventricular Hypertrophy
+    suppress:
+      - NICD
+      - Low Voltage
+    manual_ref: "§3.7.2.9.2 — LVH suppresses LOWV and NICD"
+
+  # RVH suppresses RAD, LPFB, NICD, Incomplete RBBB (RSR pattern)
+  - when: Right Ventricular Hypertrophy
+    suppress:
+      - QRS_Axis_RAD
+      - Left Posterior Fascicular Block
+      - NICD
+      - Low Voltage
+    manual_ref: "§3.7.2.9.1 — RVH suppresses rightward axis, LPFB, LOWV, IVCD"
+
+  # Acute MI suppresses generic ST elevation, Early Repol, Old MI
+  - when_any: [Acute MI Anterior, Acute MI Septal, Acute MI Lateral,
+               Acute MI Inferior, Acute MI Posterior]
+    suppress:
+      - ST_ST Elevation
+      - Early Repolarization Pattern
+      - Old MI
+    manual_ref: "§3.7.2.11.1, §3.7.2.13.1 — injury stops ST/T analysis"
+
+  # Lateral MI / Inferior MI suppress RAD
+  - when_any: [Acute MI Lateral, Acute MI Inferior]
+    suppress:
+      - QRS_Axis_RAD
+    manual_ref: "§3.7.2.10.3 — LMI suppresses right axis"
+
+  # AMI / LMI suppress PULD
+  - when_any: [Acute MI Anterior, Acute MI Lateral]
+    suppress:
+      - Pulmonary Disease Pattern
+    manual_ref: "§3.7.2.10.3 — AMI or LMI suppresses PULD"
+
+  # T Wave Inversion suppresses Early Repolarization
+  - when: T Wave Inversion
+    suppress:
+      - Early Repolarization Pattern
+    manual_ref: "§3.7.2.13.1 — ischemia/TWI suppresses Early Repol"
+
+  # Brugada gates and suppressions
+  - when: Brugada Syndrome Pattern
+    condition: { max_qrs: 150, max_bpm: 150 }
+    suppress:
+      - Right Bundle Branch Block
+      - Incomplete RBBB
+      - Early Repolarization Pattern
+    manual_ref: "§3.7.2.7 — Brugada gates + RBBB conflict"
+
+  # Wide-QRS rhythms suppress voltage-based hypertrophy
+  - when: Wide QRS
+    condition: { min_bpm: 100, min_qrs: 120 }
+    suppress:
+      - Left Ventricular Hypertrophy
+      - Right Ventricular Hypertrophy
+    manual_ref: "Voltage unreliable in wide-complex rhythms"
+
+# ── CONCORDANCE RULES ──────────────────────────────────────────────────────
+# Label is displayed ONLY when multiple signals agree.
+# If concordance fails → suppress the label.
+concordance_rules:
+
+  - label: AV_BLOCK_1st Degree AV Block
+    requires:
+      - pr_gte: 210                                   # regression PR >= 210 ms
+      - rhythm_in: [Sinus, Ectropic Atrial]           # not AF/Flutter
+    manual_ref: "12SL FAV concordance"
+
+  - label: Left Bundle Branch Block
+    complete_requires: { qrs_gte: 120 }
+    incomplete_requires: { qrs_lt: 120 }
+
+  - label: Right Bundle Branch Block
+    complete_requires: { qrs_gte: 120 }
+    incomplete_requires: { qrs_lt: 120 }
+
+  - label: SVT
+    requires:
+      - bpm_gte: 150
+      - qrs_lt: 120
+
+  - label: Wide QRS
+    requires:
+      - qrs_gte: 120
+
+  - label: Left Atrial Enlargement
+    requires:
+      - rhythm_in: [Sinus, Ectropic Atrial]
+
+  - label: Right Atrial Enlargement
+    requires:
+      - rhythm_in: [Sinus, Ectropic Atrial]
+
+  - label: WPW
+    soft_signal:
+      - pr_lt: 120                                    # short PR supports WPW
+    demote_if_no_soft: "Possible WPW"
+
+# ── SCREENING MODE (optional high-specificity filter) ───────────────────────
+screening_mode:
+  suppress_when_on:
+    - Suspected Junctional Bradycardia
+    - Suspected Junctional Rhythm
+    - Suspected Accelerated Junctional Rhythm
+    - Incomplete LBBB
+    - Incomplete RBBB
+    - NICD
+    - Ectopic Atrial Rhythm
+    - Old MI
+    - Early Repolarization Pattern
+    - QRS_Axis_Extreme
+  manual_ref: "§3.8 — Screening Criteria: Suppressed Statements"
