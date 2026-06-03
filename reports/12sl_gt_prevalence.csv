@@ -1,0 +1,57 @@
+disease,has_12sl_gt_mapping,gt_12sl_codes,n_ecgs,gt_positive,gt_negative,prevalence_pct
+AFib,True,AFIB,21799,1396,20403,6.404
+AVBlock,True,"AVDIS,CHB,MBZI,MBZII,SAV,VAVB,W2T1,W3T1,W4T1",21799,201,21598,0.922
+AbnormalQRSTAngle,True,QRST,21799,68,21731,0.312
+AcuteMISTEMI,True,STEMI,21799,178,21621,0.817
+AtrialEnlargement,True,"BAE,LAE,RAE",21799,588,21211,2.697
+AtrialFlutter,True,FLUT,21799,151,21648,0.693
+BiventricularHypertrophy,True,BIVH,21799,16,21783,0.073
+Brugada,False,(no GT),21799,,,
+EctopicAtrialRhythm,True,"EABRAD,EAR,EATACH",21799,68,21731,0.312
+Ectopy,True,"ABER,PAC,PSVC,PVC",21799,2260,19539,10.367
+ElectrodeReversals,True,ARM,21799,23,21776,0.106
+Hemiblocks,True,"AFB,IVCB,IVCD,PFB",21799,844,20955,3.872
+IncompleteBundleBlocks,True,"ILBBB,IRBBB",21799,550,21249,2.523
+JunctionalRhythm,True,"JR,JTACH,JUNBRAD,JUNCT-R",21799,135,21664,0.619
+LBBB,True,LBBB,21799,566,21233,2.596
+LVH,True,"LVH,LVH2,LVH3,QRSV",21799,4108,17691,18.845
+LowVoltageQRS,True,LOWV,21799,356,21443,1.633
+NonspecificIVCB,True,"IVCB,IVCD",21799,311,21488,1.427
+NonspecificSTDepression,False,(no GT),21799,,,
+NonspecificSTElevation,True,"SERYR1,SERYR2",21799,31,21768,0.142
+NonspecificTWave,True,"NSTT,NT,QRST",21799,1955,19844,8.968
+PRInterval,True,"FAV,SPR",21799,1343,20456,6.161
+Pacing,True,"APR,ASVPR,AVDPR,VPR",21799,222,21577,1.018
+PedBiventricularHypertrophy,False,(no GT),21799,,,
+PedEarlyRepolPericarditis,False,(no GT),21799,,,
+PedNonspecificBlock,False,(no GT),21799,,,
+PedSTDepression,False,(no GT),21799,,,
+PediatricAtrialEnlargement,False,(no GT),21799,,,
+PediatricBrugada,False,(no GT),21799,,,
+PediatricConduction,False,(no GT),21799,,,
+PediatricDextrocardia,False,(no GT),21799,,,
+PediatricLVH,False,(no GT),21799,,,
+PediatricLowVoltageQRS,False,(no GT),21799,,,
+PediatricProlongedQT,False,(no GT),21799,,,
+PediatricQRSAxis,False,(no GT),21799,,,
+PediatricQWaveMI,False,(no GT),21799,,,
+PediatricRVH,False,(no GT),21799,,,
+PediatricSTElevation,False,(no GT),21799,,,
+PediatricTWave,False,(no GT),21799,,,
+PediatricWPW,False,(no GT),21799,,,
+PericarditisOrEarlyRepol,False,(no GT),21799,,,
+PoorRWaveProgression,False,(no GT),21799,,,
+ProlongedQT,True,LNGQT,21799,636,21163,2.918
+PulmonaryDiseasePattern,True,PULD,21799,64,21735,0.294
+QRSAxis,False,(no GT),21799,,,
+QWaveMI,True,"ALMI,AMI,ASMI,IMI,IPMI,LMI,POSTMI,QESPMI,SMI",21799,4132,17667,18.955
+RBBB,True,RBBB,21799,721,21078,3.307
+RVH,True,"RVE+,RVH",21799,44,21755,0.202
+STDepressionIschemia,True,"ASBINJ,ISBINJ,JST,LSBINJ,MSTDAL,MSTDAS,MSTDIL,NST,SSBINJ,STDEP2",21799,1404,20395,6.441
+STElevationInjury,True,"AINJ,AIOHAI,ALIHAI,ALINJ,IINJ,IIOHAI,ILIHAI,ILINJ,LINJ,LIOHAI",21799,63,21736,0.289
+STElevationMechanismUnknown,False,(no GT),21799,,,
+SinusArrhythmia,True,"MSAR,SAR",21799,1473,20326,6.757
+SinusRhythm,True,"MSBRAD,NSR,SBRAD,SRTH,STACH",21799,19634,2165,90.068
+TWaveIschemia,True,"ALT,AT,ILT,IT,LT,MALT,MAT,MILT,MIT,MLT,NSTT,NT",21799,3608,18191,16.551
+UndeterminedRhythm,True,UR,21799,142,21657,0.651
+WPW,True,"WPW,WPWA,WPWB",21799,49,21750,0.225

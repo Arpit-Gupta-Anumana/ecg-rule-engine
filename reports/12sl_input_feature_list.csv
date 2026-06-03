@@ -1,0 +1,123 @@
+index,feature_id,csv_source,category
+1,PP_ms,derived: 60000 / HR_Atrial_Global,global_interval
+2,PR_ms,PR_Int_Global,global_interval
+3,P_III_mV,P_Amp_III,per_lead_amplitude
+4,P_II_mV,P_Amp_II,per_lead_amplitude
+5,P_I_mV,P_Amp_I,per_lead_amplitude
+6,P_V1_mV,P_Amp_V1,per_lead_amplitude
+7,P_V2_mV,P_Amp_V2,per_lead_amplitude
+8,P_V3_mV,P_Amp_V3,per_lead_amplitude
+9,P_V4_mV,P_Amp_V4,per_lead_amplitude
+10,P_V5_mV,P_Amp_V5,per_lead_amplitude
+11,P_V6_mV,P_Amp_V6,per_lead_amplitude
+12,P_aVF_mV,P_Amp_aVF,per_lead_amplitude
+13,P_aVL_mV,P_Amp_aVL,per_lead_amplitude
+14,P_aVR_mV,P_Amp_aVR,per_lead_amplitude
+15,P_axis_deg,P_AxisFront_Global,global_axis
+16,P_ms,P_Dur_Global,global_interval
+17,QRS_III_ms,R_Dur_III+Q_Dur_III+S_Dur_III,per_lead_duration
+18,QRS_II_ms,R_Dur_II+Q_Dur_II+S_Dur_II,per_lead_duration
+19,QRS_I_ms,R_Dur_I+Q_Dur_I+S_Dur_I,per_lead_duration
+20,QRS_V1_ms,R_Dur_V1+Q_Dur_V1+S_Dur_V1,per_lead_duration
+21,QRS_V2_ms,R_Dur_V2+Q_Dur_V2+S_Dur_V2,per_lead_duration
+22,QRS_V3_ms,R_Dur_V3+Q_Dur_V3+S_Dur_V3,per_lead_duration
+23,QRS_V4_ms,R_Dur_V4+Q_Dur_V4+S_Dur_V4,per_lead_duration
+24,QRS_V5_ms,R_Dur_V5+Q_Dur_V5+S_Dur_V5,per_lead_duration
+25,QRS_V6_ms,R_Dur_V6+Q_Dur_V6+S_Dur_V6,per_lead_duration
+26,QRS_aVF_ms,R_Dur_aVF+Q_Dur_aVF+S_Dur_aVF,per_lead_duration
+27,QRS_aVL_ms,R_Dur_aVL+Q_Dur_aVL+S_Dur_aVL,per_lead_duration
+28,QRS_aVR_ms,R_Dur_aVR+Q_Dur_aVR+S_Dur_aVR,per_lead_duration
+29,QRS_axis_deg,R_AxisFrontal_Global,global_axis
+30,QRS_ms,QRS_Dur_Global,global_interval
+31,QT_ms,QT_Int_Global,global_interval
+32,QTc_Bazett_ms,QT_IntBazett_Global,per_lead_duration
+33,QTc_Framingham_ms,QT_IntFramingham_Global,per_lead_duration
+34,QTc_Fridericia_ms,QT_IntFridericia_Global,per_lead_duration
+35,Q_III_mV,Q_Amp_III (abs),per_lead_amplitude
+36,Q_III_ms,Q_Dur_III,per_lead_duration
+37,Q_II_mV,Q_Amp_II (abs),per_lead_amplitude
+38,Q_II_ms,Q_Dur_II,per_lead_duration
+39,Q_I_mV,Q_Amp_I (abs),per_lead_amplitude
+40,Q_I_ms,Q_Dur_I,per_lead_duration
+41,Q_V1_mV,Q_Amp_V1 (abs),per_lead_amplitude
+42,Q_V1_ms,Q_Dur_V1,per_lead_duration
+43,Q_V2_mV,Q_Amp_V2 (abs),per_lead_amplitude
+44,Q_V2_ms,Q_Dur_V2,per_lead_duration
+45,Q_V3_mV,Q_Amp_V3 (abs),per_lead_amplitude
+46,Q_V3_ms,Q_Dur_V3,per_lead_duration
+47,Q_V4_mV,Q_Amp_V4 (abs),per_lead_amplitude
+48,Q_V4_ms,Q_Dur_V4,per_lead_duration
+49,Q_V5_mV,Q_Amp_V5 (abs),per_lead_amplitude
+50,Q_V5_ms,Q_Dur_V5,per_lead_duration
+51,Q_V6_mV,Q_Amp_V6 (abs),per_lead_amplitude
+52,Q_V6_ms,Q_Dur_V6,per_lead_duration
+53,Q_aVF_mV,Q_Amp_aVF (abs),per_lead_amplitude
+54,Q_aVF_ms,Q_Dur_aVF,per_lead_duration
+55,Q_aVL_mV,Q_Amp_aVL (abs),per_lead_amplitude
+56,Q_aVL_ms,Q_Dur_aVL,per_lead_duration
+57,Q_aVR_mV,Q_Amp_aVR (abs),per_lead_amplitude
+58,Q_aVR_ms,Q_Dur_aVR,per_lead_duration
+59,RR_ms,RR_Mean_Global,global_interval
+60,R_III_mV,R_Amp_III,per_lead_amplitude
+61,R_II_mV,R_Amp_II,per_lead_amplitude
+62,R_I_mV,R_Amp_I,per_lead_amplitude
+63,R_V1_mV,R_Amp_V1,per_lead_amplitude
+64,R_V2_mV,R_Amp_V2,per_lead_amplitude
+65,R_V3_mV,R_Amp_V3,per_lead_amplitude
+66,R_V4_mV,R_Amp_V4,per_lead_amplitude
+67,R_V5_mV,R_Amp_V5,per_lead_amplitude
+68,R_V6_mV,R_Amp_V6,per_lead_amplitude
+69,R_aVF_mV,R_Amp_aVF,per_lead_amplitude
+70,R_aVL_mV,R_Amp_aVL,per_lead_amplitude
+71,R_aVR_mV,R_Amp_aVR,per_lead_amplitude
+72,STJ_III_mV,ST_Amp_III,per_lead_amplitude
+73,STJ_II_mV,ST_Amp_II,per_lead_amplitude
+74,STJ_I_mV,ST_Amp_I,per_lead_amplitude
+75,STJ_V1_mV,ST_Amp_V1,per_lead_amplitude
+76,STJ_V2_mV,ST_Amp_V2,per_lead_amplitude
+77,STJ_V3_mV,ST_Amp_V3,per_lead_amplitude
+78,STJ_V4_mV,ST_Amp_V4,per_lead_amplitude
+79,STJ_V5_mV,ST_Amp_V5,per_lead_amplitude
+80,STJ_V6_mV,ST_Amp_V6,per_lead_amplitude
+81,STJ_aVF_mV,ST_Amp_aVF,per_lead_amplitude
+82,STJ_aVL_mV,ST_Amp_aVL,per_lead_amplitude
+83,STJ_aVR_mV,ST_Amp_aVR,per_lead_amplitude
+84,STM_III_mV,ST_Amp116_III (/1000),per_lead_amplitude
+85,STM_II_mV,ST_Amp116_II (/1000),per_lead_amplitude
+86,STM_I_mV,ST_Amp116_I (/1000),per_lead_amplitude
+87,STM_V1_mV,ST_Amp116_V1 (/1000),per_lead_amplitude
+88,STM_V2_mV,ST_Amp116_V2 (/1000),per_lead_amplitude
+89,STM_V3_mV,ST_Amp116_V3 (/1000),per_lead_amplitude
+90,STM_V4_mV,ST_Amp116_V4 (/1000),per_lead_amplitude
+91,STM_V5_mV,ST_Amp116_V5 (/1000),per_lead_amplitude
+92,STM_V6_mV,ST_Amp116_V6 (/1000),per_lead_amplitude
+93,STM_aVF_mV,ST_Amp116_aVF (/1000),per_lead_amplitude
+94,STM_aVL_mV,ST_Amp116_aVL (/1000),per_lead_amplitude
+95,STM_aVR_mV,ST_Amp116_aVR (/1000),per_lead_amplitude
+96,S_III_mV,S_Amp_III (abs),per_lead_amplitude
+97,S_II_mV,S_Amp_II (abs),per_lead_amplitude
+98,S_I_mV,S_Amp_I (abs),per_lead_amplitude
+99,S_V1_mV,S_Amp_V1 (abs),per_lead_amplitude
+100,S_V2_mV,S_Amp_V2 (abs),per_lead_amplitude
+101,S_V3_mV,S_Amp_V3 (abs),per_lead_amplitude
+102,S_V4_mV,S_Amp_V4 (abs),per_lead_amplitude
+103,S_V5_mV,S_Amp_V5 (abs),per_lead_amplitude
+104,S_V6_mV,S_Amp_V6 (abs),per_lead_amplitude
+105,S_aVF_mV,S_Amp_aVF (abs),per_lead_amplitude
+106,S_aVL_mV,S_Amp_aVL (abs),per_lead_amplitude
+107,S_aVR_mV,S_Amp_aVR (abs),per_lead_amplitude
+108,T_III_mV,T_Amp_III,per_lead_amplitude
+109,T_II_mV,T_Amp_II,per_lead_amplitude
+110,T_I_mV,T_Amp_I,per_lead_amplitude
+111,T_V1_mV,T_Amp_V1,per_lead_amplitude
+112,T_V2_mV,T_Amp_V2,per_lead_amplitude
+113,T_V3_mV,T_Amp_V3,per_lead_amplitude
+114,T_V4_mV,T_Amp_V4,per_lead_amplitude
+115,T_V5_mV,T_Amp_V5,per_lead_amplitude
+116,T_V6_mV,T_Amp_V6,per_lead_amplitude
+117,T_aVF_mV,T_Amp_aVF,per_lead_amplitude
+118,T_aVL_mV,T_Amp_aVL,per_lead_amplitude
+119,T_aVR_mV,T_Amp_aVR,per_lead_amplitude
+120,T_axis_deg,T_AxisFront_Global,global_axis
+121,atrial_rate_bpm,HR_Atrial_Global,global_rate
+122,ventricular_rate_bpm,HR_Ventr_Global,global_rate
