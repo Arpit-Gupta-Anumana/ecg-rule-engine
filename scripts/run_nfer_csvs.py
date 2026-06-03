@@ -59,6 +59,19 @@ from ecg_rule_engine.engine.evaluator import EvalContext, evaluate_disease
 RULES_DIR = ROOT / "rules"
 LEADS = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 
+# All 122 measurement inputs the rule engine can use (excl. flags, sex, age).
+REQUIRED_FEATURE_IDS: frozenset[str] = frozenset(
+    {
+        "ventricular_rate_bpm", "atrial_rate_bpm", "RR_ms", "PP_ms",
+        "QRS_ms", "PR_ms", "QT_ms", "QTc_Bazett_ms", "QTc_Fridericia_ms",
+        "QTc_Framingham_ms", "P_ms", "QRS_axis_deg", "P_axis_deg", "T_axis_deg",
+        *[f"{w}_{lead}_mV" for w in ("R", "Q", "S", "P", "T", "STJ", "STM") for lead in LEADS],
+        *[f"Q_{lead}_ms" for lead in LEADS],
+        *[f"QRS_{lead}_ms" for lead in LEADS],
+    }
+)
+assert len(REQUIRED_FEATURE_IDS) == 122
+
 # Default merge keys (user requested PERSON_ID + EVENT_DTM). ECG_ID is more
 # robust if present in all three — override with --keys.
 DEFAULT_KEYS = ["PERSON_ID", "EVENT_DTM"]
@@ -111,62 +124,142 @@ VARIANT_TO_FLAG: dict[tuple[str, str], str] = {
     ("Hemiblocks", "IVCD_nonspecific"): "ivcb_flag",
 }
 
-# ── engine disease → ground-truth column(s) in the 4th (GT) file ───────────
-# GT is a wide one-hot table; a disease is POSITIVE if ANY mapped column is
-# truthy. Edit freely (or override with --gt-map JSON). Diseases not listed
-# here have no GT column and are skipped in the metrics table.
-DISEASE_TO_GT: dict[str, list[str]] = {
-    "SinusRhythm": ["Sinus Rhythm"],
-    "AFib": ["Atrial Fibrillation"],
-    "AtrialFlutter": ["Atrial Flutter"],
-    "WPW": ["Wolff-Parkinson-White Syndrome"],
-    "LBBB": ["Left Bundle Branch Block"],
-    "RBBB": ["Right Bundle Branch Block"],
-    "LVH": ["Left Ventricular Hypertrophy", "Left Ventricular Strain Pattern"],
-    "RVH": ["Right Ventricular Hypertrophy"],
-    "LowVoltageQRS": ["Low Voltage QRS"],
-    "NonspecificIVCB": ["Non-Specific Intraventricular Conduction Delay"],
-    "Pacing": ["Paced Rhythm"],
-    "EctopicAtrialRhythm": ["Ectopic Atrial Rhythm"],
-    "JunctionalRhythm": ["Junctional Rhythm"],
-    "Brugada": ["Brugada Syndrome Pattern"],
-    "PericarditisOrEarlyRepol": ["Early Repolarization Pattern"],
-    "PRInterval": ["1st Degree AV Block"],
-    "AVBlock": [
-        "2nd Degree AV Block", "2nd Degree AV Block Mobitz I",
-        "2nd Degree AV Block Mobitz II", "3rd Degree AV Block",
-        "2:1 a-v conduction", "3:1 a-v conduction",
-        "4:1 a-v conduction", "5:1 a-v conduction",
-    ],
-    "Hemiblocks": [
-        "Left Anterior Fascicular Block", "Left Posterior Fascicular Block",
-        "Bifascicular block",
-    ],
-    "AtrialEnlargement": [
-        "Left Atrial Enlargement", "Right Atrial Enlargement",
-        "Biatrial Enlargement",
-    ],
-    "QWaveMI": [
-        "Inferior Myocardial Infarction", "Anterolateral Infarct (closest)",
-        "Acute Anterior Myocardial Infarction",
-        "Acute Inferior Myocardial Infarction",
-    ],
-    "AcuteMISTEMI": [
-        "Acute Anterior Myocardial Infarction",
-        "Acute Inferior Myocardial Infarction",
-    ],
-    "STElevationInjury": ["ST Elevation"],
-    "NonspecificSTElevation": ["ST Elevation"],
-    "STDepressionIschemia": ["ST Depression"],
-    "NonspecificSTDepression": ["ST Depression"],
-    "TWaveIschemia": ["T Wave Inversion"],
-    "NonspecificTWave": ["T Wave Inversion"],
-    "Ectopy": [
+# Non-label columns in the abnormalities cohort file
+GT_META_COLS = frozenset({
+    "NFER_PID", "NFER_DTM", "ECG_INTERPRET_FULL_TEXT", "LLM_OUTPUT", "parsed", "merged",
+})
+
+# Your GT abnormality column → rule-engine prediction(s).
+# Each value is "Disease" (any variant) or "Disease.Variant" (specific variant).
+# Prediction is positive if ANY listed rule fires. Override with --gt-map JSON.
+ABNORMALITY_TO_PRED: dict[str, list[str]] = {
+    "Sinus Rhythm": ["SinusRhythm"],
+    "1st Degree AV Block": ["PRInterval.FirstDegreeAVBlock"],
+    "2:1 a-v conduction": ["AVBlock"],
+    "2nd Degree AV Block": ["AVBlock"],
+    "2nd Degree AV Block Mobitz I": ["AVBlock"],
+    "2nd Degree AV Block Mobitz II": ["AVBlock"],
+    "3:1 a-v conduction": ["AVBlock"],
+    "3rd Degree AV Block": ["AVBlock.CompleteHeartBlock"],
+    "4:1 a-v conduction": ["AVBlock"],
+    "5:1 a-v conduction": ["AVBlock"],
+    "Atrial Fibrillation": ["AFib"],
+    "Atrial Flutter": ["AtrialFlutter"],
+    "Junctional Rhythm": ["JunctionalRhythm"],
+    "Ectopic Atrial Rhythm": ["EctopicAtrialRhythm"],
+    "Paced Rhythm": ["Pacing"],
+    "Wide QRS Rhythm": ["UndeterminedRhythm.WideQRSRhythm"],
+    "Supraventricular Tachycardia (SVT)": ["UndeterminedRhythm.SVT"],
+    "Wolff-Parkinson-White Syndrome": ["WPW"],
+    "Left Bundle Branch Block": ["LBBB"],
+    "Right Bundle Branch Block": ["RBBB"],
+    "Left Anterior Fascicular Block": ["Hemiblocks.LAFB"],
+    "Left Posterior Fascicular Block": ["Hemiblocks.LPFB"],
+    "Bifascicular block": ["Hemiblocks.LAFB", "Hemiblocks.LPFB"],
+    "Non-Specific Intraventricular Conduction Delay": ["NonspecificIVCB"],
+    "Left Ventricular Hypertrophy": ["LVH"],
+    "Left Ventricular Strain Pattern": ["LVH"],
+    "Right Ventricular Hypertrophy": ["RVH"],
+    "Low Voltage QRS": ["LowVoltageQRS"],
+    "Left Atrial Enlargement": ["AtrialEnlargement.LAE_literature_proxy"],
+    "Right Atrial Enlargement": ["AtrialEnlargement.RAE"],
+    "Biatrial Enlargement": ["AtrialEnlargement"],
+    "Brugada Syndrome Pattern": ["Brugada"],
+    "Early Repolarization Pattern": ["PericarditisOrEarlyRepol.Early_Repolarization"],
+    "Acute Anterior Myocardial Infarction": ["AcuteMISTEMI", "QWaveMI.Anterior_MI"],
+    "Acute Inferior Myocardial Infarction": ["AcuteMISTEMI", "QWaveMI.Inferior_MI"],
+    "Inferior Myocardial Infarction": ["QWaveMI.Inferior_MI"],
+    "Anterolateral Infarct (closest)": ["QWaveMI.Lateral_MI"],
+    "ST Elevation": ["STElevationInjury", "NonspecificSTElevation"],
+    "ST Depression": ["STDepressionIschemia", "NonspecificSTDepression"],
+    "T Wave Inversion": ["TWaveIschemia", "NonspecificTWave"],
+    "Premature Atrial Complex": ["Ectopy"],
+    "Premature Junctional Complexes": ["Ectopy"],
+    "Premature Ventricular Complex": ["Ectopy"],
+    "Bigeminy": ["Ectopy"],
+    "Trigeminy": ["Ectopy"],
+}
+
+# Coarse GT families: combined GT prevalence vs combined engine fire (any label in group)
+COARSE_GROUPS: list[tuple[str, list[str], list[str]]] = [
+    ("AV block (9 labels)", [
+        "1st Degree AV Block", "2:1 a-v conduction", "2nd Degree AV Block",
+        "2nd Degree AV Block Mobitz I", "2nd Degree AV Block Mobitz II",
+        "3:1 a-v conduction", "3rd Degree AV Block", "4:1 a-v conduction",
+        "5:1 a-v conduction",
+    ], ["AVBlock"]),
+    ("Ectopy (5 labels)", [
         "Premature Atrial Complex", "Premature Junctional Complexes",
         "Premature Ventricular Complex", "Bigeminy", "Trigeminy",
-    ],
-    "UndeterminedRhythm": ["Wide QRS Rhythm", "Supraventricular Tachycardia (SVT)"],
+    ], ["Ectopy"]),
+    ("ST elevation", ["ST Elevation"], ["STElevationInjury", "NonspecificSTElevation"]),
+    ("ST depression", ["ST Depression"], ["STDepressionIschemia", "NonspecificSTDepression"]),
+    ("T wave inversion", ["T Wave Inversion"], ["TWaveIschemia", "NonspecificTWave"]),
+    ("Acute MI (2 labels)", [
+        "Acute Anterior Myocardial Infarction", "Acute Inferior Myocardial Infarction",
+    ], ["AcuteMISTEMI"]),
+]
+
+# Parquet label → suppression_rules.yaml label (for --apply-suppression)
+ABNORMALITY_TO_SUPPRESSION: dict[str, str] = {
+    "Sinus Rhythm": "Sinus",
+    "Atrial Fibrillation": "Afib",
+    "Atrial Flutter": "Flutter",
+    "Junctional Rhythm": "Junctional",
+    "Ectopic Atrial Rhythm": "Ectropic Atrial",
+    "Paced Rhythm": "Paced",
+    "Wide QRS Rhythm": "Wide QRS",
+    "Supraventricular Tachycardia (SVT)": "SVT",
+    "Wolff-Parkinson-White Syndrome": "WPW",
+    "Left Bundle Branch Block": "Left Bundle Branch Block",
+    "Right Bundle Branch Block": "Right Bundle Branch Block",
+    "Left Anterior Fascicular Block": "Left Anterior Fascicular Block",
+    "Left Posterior Fascicular Block": "Left Posterior Fascicular Block",
+    "Bifascicular block": "Bifascicular block",
+    "Non-Specific Intraventricular Conduction Delay": "NICD",
+    "Left Ventricular Hypertrophy": "Left Ventricular Hypertrophy",
+    "Left Ventricular Strain Pattern": "Left Ventricular Hypertrophy",
+    "Right Ventricular Hypertrophy": "Right Ventricular Hypertrophy",
+    "Low Voltage QRS": "Low Voltage QRS",
+    "Left Atrial Enlargement": "Left Atrial Enlargement",
+    "Right Atrial Enlargement": "Right Atrial Enlargement",
+    "Biatrial Enlargement": "Biatrial Enlargement",
+    "Brugada Syndrome Pattern": "Brugada Syndrome Pattern",
+    "Early Repolarization Pattern": "Early Repolarization Pattern",
+    "ST Elevation": "ST_ST Elevation",
+    "ST Depression": "ST_ST Depression",
+    "T Wave Inversion": "T Wave Inversion",
+    "1st Degree AV Block": "AV_BLOCK_1st Degree AV Block",
+    "2nd Degree AV Block Mobitz I": "AV_BLOCK_2nd Degree AV Block Mobitz I",
+    "3rd Degree AV Block": "AV_BLOCK_3rd Degree AV Block",
+    "2:1 a-v conduction": "AV_BLOCK_2:1 a-v conduction",
+    "3:1 a-v conduction": "AV_BLOCK_3:1 a-v conduction",
+    "4:1 a-v conduction": "AV_BLOCK_4:1 a-v conduction",
+    "5:1 a-v conduction": "AV_BLOCK_5:1 a-v conduction",
+    "Acute Anterior Myocardial Infarction": "Acute MI Anterior",
+    "Acute Inferior Myocardial Infarction": "Acute MI Inferior",
+    "Inferior Myocardial Infarction": "Old MI",
+    "Anterolateral Infarct (closest)": "Old MI",
 }
+
+
+def diseases_for_cohort(abnormality_map: dict[str, list[str]]) -> set[str]:
+    """Minimal engine diseases to evaluate (44-label cohort only)."""
+    needed: set[str] = set()
+    for specs in abnormality_map.values():
+        for spec in specs:
+            needed.add(spec.split(".", 1)[0])
+    needed.update(DISEASE_TO_FLAG.keys())
+    needed.update(d for d, _ in VARIANT_TO_FLAG)
+    return needed
+
+
+def pred_col_name(spec: str) -> str:
+    """Disease or Disease.Variant → column name in predictions CSV."""
+    if "." in spec:
+        disease, variant = spec.split(".", 1)
+        return f"pred__{disease}__{variant}"
+    return spec
 
 
 def _norm(s: str) -> str:
@@ -186,20 +279,192 @@ def safe_div(a: float, b: float) -> float:
     return a / b if b else 0.0
 
 
-def compute_gt_metrics(pred_df: pd.DataFrame, gt_path: Path, pred_keys: list[str],
-                       gt_keys: list[str], disease_map: dict[str, list[str]],
-                       out_metrics: Path) -> None:
-    gt = pd.read_csv(gt_path)
-    # normalized column lookup so minor spacing/case differences still match
+def load_gt_table(gt_path: Path) -> pd.DataFrame:
+    suffix = gt_path.suffix.lower()
+    if suffix == ".parquet":
+        return pd.read_parquet(gt_path)
+    if suffix in {".csv", ".tsv"}:
+        return pd.read_csv(gt_path, sep="\t" if suffix == ".tsv" else ",")
+    raise ValueError(f"Unsupported GT format: {gt_path} (use .csv, .tsv, or .parquet)")
+
+
+def resolve_gt_col(merged: pd.DataFrame, gt_col: str) -> str | None:
+    """Column name for a GT label after pred/GT merge (GT side may be suffixed _gt)."""
+    if f"{gt_col}_gt" in merged.columns:
+        return f"{gt_col}_gt"
+    if gt_col in merged.columns:
+        return gt_col
+    return None
+
+
+def _prediction_positive(merged: pd.DataFrame, specs: list[str],
+                        abnormality: str | None = None) -> pd.Series:
+    """True if abnormality column or any mapped rule column fired."""
+    if abnormality and abnormality in merged.columns:
+        return merged[abnormality].apply(lambda v: pd.notna(v) and v >= 1)
+    cols = [pred_col_name(s) for s in specs if pred_col_name(s) in merged.columns]
+    if not cols:
+        return pd.Series(False, index=merged.index)
+    return merged[cols].apply(
+        lambda row: any(v >= 1 for v in row if pd.notna(v)), axis=1
+    )
+
+
+def abnormality_preds_from_results(
+    results: dict, abnormality_map: dict[str, list[str]]
+) -> dict[str, int]:
+    """One 0/1 per parquet abnormality from rule-engine results."""
+    out: dict[str, int] = {}
+    for abnormality, specs in abnormality_map.items():
+        fired = False
+        for spec in specs:
+            if "." in spec:
+                disease, variant = spec.split(".", 1)
+                res = results.get(disease)
+                if res:
+                    for vr in res.variant_results:
+                        if vr.variant_name == variant and vr.fired:
+                            fired = True
+                            break
+            else:
+                res = results.get(spec)
+                if res and res.fired:
+                    fired = True
+            if fired:
+                break
+        out[abnormality] = int(fired)
+    return out
+
+
+def measurements_for_suppression(feats: dict[str, float]) -> dict[str, float | None]:
+    return {
+        "heart_rate": feats.get("ventricular_rate_bpm"),
+        "pr_interval": feats.get("PR_ms"),
+        "qrs_duration": feats.get("QRS_ms"),
+        "axis": feats.get("QRS_axis_deg"),
+        "qt_interval": feats.get("QT_ms"),
+        "qtc": feats.get("QTc_Bazett_ms"),
+    }
+
+
+def _load_suppression_labels() -> list[str]:
+    import importlib.util
+    mod_path = ROOT / "scripts" / "apply_suppression.py"
+    spec = importlib.util.spec_from_file_location("apply_suppression", mod_path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return list(mod.ALL_LABELS)
+
+
+def apply_suppression_to_abnormalities(
+    abn_preds: dict[str, int], feats: dict[str, float]
+) -> dict[str, int]:
+    """Run suppression_rules.yaml; return 0/1 per parquet abnormality."""
+    sys.path.insert(0, str(ROOT))
+    from suppression.engine import apply_suppression
+
+    sup_in = {label: 0 for label in _load_suppression_labels()}
+    for abnormality, val in abn_preds.items():
+        if not val:
+            continue
+        slabel = ABNORMALITY_TO_SUPPRESSION.get(abnormality, abnormality)
+        if slabel in sup_in:
+            sup_in[slabel] = 1
+    result = apply_suppression(sup_in, measurements_for_suppression(feats))
+    active = result.get("active_raw", {})
+    out = dict(abn_preds)
+    for abnormality in abn_preds:
+        slabel = ABNORMALITY_TO_SUPPRESSION.get(abnormality, abnormality)
+        out[abnormality] = int(active.get(slabel, abn_preds[abnormality]))
+    return out
+
+
+def print_abnormality_fire_summary(
+    pred_df: pd.DataFrame,
+    abnormality_map: dict[str, list[str]],
+    *,
+    gt_path: Path | None = None,
+    pred_keys: list[str] | None = None,
+    gt_keys: list[str] | None = None,
+    use_supp_suffix: str = "",
+) -> None:
+    """Fire rates for the 44 parquet labels only (+ coarse groups)."""
+    n = len(pred_df)
+    col_suffix = use_supp_suffix
+    print(f"\n=== Abnormality fire summary ({n} ECGs, parquet labels only) ===")
+    gt_merged = None
+    if gt_path and pred_keys and gt_keys:
+        gt = load_gt_table(gt_path)
+        col_lookup = {_norm(c): c for c in gt.columns}
+        rename = {gk: pk for gk, pk in zip(gt_keys, pred_keys)}
+        gt = gt.rename(columns=rename)
+        for k in pred_keys:
+            gt[k] = gt[k].astype(str)
+        p = pred_df.copy()
+        for k in pred_keys:
+            p[k] = p[k].astype(str)
+        gt_merged = p.merge(gt, on=pred_keys, how="inner", suffixes=("", "_gt"))
+
+    for abnormality in abnormality_map:
+        col = f"{abnormality}{col_suffix}" if col_suffix else abnormality
+        if col not in pred_df.columns:
+            continue
+        fires = int((pred_df[col] >= 1).sum())
+        gt_n = ""
+        if gt_merged is not None:
+            ncol = col_lookup.get(_norm(abnormality))
+            gtc = resolve_gt_col(gt_merged, ncol) if ncol else None
+            if gtc:
+                gt_n = f"  GT+={int(gt_merged[gtc].apply(_truthy).sum())}"
+        print(f"  {abnormality:42s}  pred {fires:>5d}/{n}{gt_n}")
+
+    print("\n=== Coarse groups (combined GT+ vs combined engine fire) ===")
+    for group_name, gt_labels, _engine_specs in COARSE_GROUPS:
+        pred_cols = [
+            (f"{a}{col_suffix}" if col_suffix else a)
+            for a in gt_labels if (f"{a}{col_suffix}" if col_suffix else a) in pred_df.columns
+        ]
+        if pred_cols:
+            eng_fires = int(pred_df[pred_cols].apply(
+                lambda r: any(v >= 1 for v in r if pd.notna(v)), axis=1
+            ).sum())
+        else:
+            eng_fires = 0
+        if gt_merged is not None:
+            gcols = []
+            for label in gt_labels:
+                ncol = col_lookup.get(_norm(label))
+                if ncol:
+                    gtc = resolve_gt_col(gt_merged, ncol)
+                    if gtc:
+                        gcols.append(gtc)
+            if gcols:
+                gt_fires = int(gt_merged[gcols].apply(
+                    lambda r: any(_truthy(v) for v in r), axis=1
+                ).sum())
+                print(f"  {group_name:42s}  pred {eng_fires:>5d}/{n}  GT+={gt_fires:>5d}")
+                continue
+        print(f"  {group_name:42s}  pred {eng_fires:>5d}/{n}")
+
+
+def compute_abnormality_metrics(
+    pred_df: pd.DataFrame,
+    gt_path: Path,
+    pred_keys: list[str],
+    gt_keys: list[str],
+    abnormality_map: dict[str, list[str]],
+    out_metrics: Path,
+) -> None:
+    """Score each GT abnormality column against mapped rule-engine outputs."""
+    gt = load_gt_table(gt_path)
     col_lookup = {_norm(c): c for c in gt.columns}
 
-    # align GT keys onto prediction key names (positional)
     rename = {gk: pk for gk, pk in zip(gt_keys, pred_keys)}
     gt = gt.rename(columns=rename)
     for k in pred_keys:
         if k not in gt.columns:
-            print(f"  GT ERROR: key '{k}' not in GT file after rename; "
-                  f"have {list(gt.columns)[:8]}...")
+            print(f"  GT ERROR: key '{k}' not in GT file after rename")
             return
         gt[k] = gt[k].astype(str)
 
@@ -214,53 +479,78 @@ def compute_gt_metrics(pred_df: pd.DataFrame, gt_path: Path, pred_keys: list[str
         print("  No rows joined — check key names/values (--gt-keys).")
         return
 
+    # All label columns in file, or only those in the map
+    label_cols_in_gt = [
+        col_lookup[_norm(c)]
+        for c in abnormality_map
+        if _norm(c) in col_lookup
+    ]
+    unmapped_gt = [
+        c for c in gt.columns
+        if c not in GT_META_COLS and c not in pred_keys and _norm(c) not in {_norm(x) for x in abnormality_map}
+    ]
+
     rows = []
-    for disease, gt_cols in disease_map.items():
-        if disease not in pred.columns:
+    for abnormality, specs in abnormality_map.items():
+        ncol = col_lookup.get(_norm(abnormality))
+        if ncol is None:
+            rows.append({
+                "abnormality": abnormality, "rule_predictions": "; ".join(specs),
+                "status": "NO GT COLUMN",
+            })
             continue
-        present = [col_lookup[_norm(c)] for c in gt_cols if _norm(c) in col_lookup]
-        missing = [c for c in gt_cols if _norm(c) not in col_lookup]
-        if not present:
-            rows.append({"disease": disease, "gt_columns": "; ".join(gt_cols),
-                         "status": "NO GT COLUMN FOUND"})
+        pred_col = f"{abnormality}_supp" if f"{abnormality}_supp" in merged.columns else abnormality
+        if pred_col not in merged.columns and not any(
+            pred_col_name(s) in merged.columns for s in specs
+        ):
+            rows.append({
+                "abnormality": abnormality, "rule_predictions": "; ".join(specs),
+                "status": "NO PRED COLUMN",
+            })
             continue
 
-        gt_pos = merged[present].apply(lambda r: any(_truthy(v) for v in r), axis=1)
-        valid = merged[merged[disease] >= 0]
-        gt_pos_v = gt_pos.loc[valid.index]
-        pred_pos = valid[disease] >= 1
-
-        tp = int((pred_pos & gt_pos_v).sum())
-        fp = int((pred_pos & ~gt_pos_v).sum())
-        fn = int((~pred_pos & gt_pos_v).sum())
-        tn = int((~pred_pos & ~gt_pos_v).sum())
-        sens = safe_div(tp, tp + fn)
-        spec = safe_div(tn, tn + fp)
-        ppv = safe_div(tp, tp + fp)
-        f1 = safe_div(2 * tp, 2 * tp + fp + fn)
+        gtc = resolve_gt_col(merged, ncol)
+        if not gtc:
+            rows.append({
+                "abnormality": abnormality, "rule_predictions": "; ".join(specs),
+                "status": "NO GT COLUMN IN MERGE",
+            })
+            continue
+        gt_pos = merged[gtc].apply(_truthy)
+        pred_pos = _prediction_positive(merged, specs, abnormality=pred_col)
+        tp = int((pred_pos & gt_pos).sum())
+        fp = int((pred_pos & ~gt_pos).sum())
+        fn = int((~pred_pos & gt_pos).sum())
+        tn = int((~pred_pos & ~gt_pos).sum())
+        n = len(merged)
         rows.append({
-            "disease": disease,
-            "gt_columns": "; ".join(present) + (f"  [MISSING: {missing}]" if missing else ""),
-            "GT_pos": tp + fn, "TP": tp, "FP": fp, "FN": fn, "TN": tn,
-            "sensitivity": round(sens, 4), "specificity": round(spec, 4),
-            "PPV": round(ppv, 4), "F1": round(f1, 4),
-            "prevalence": round(safe_div(tp + fn, len(valid)), 4),
+            "abnormality": abnormality,
+            "rule_predictions": "; ".join(specs),
+            "GT_pos": tp + fn,
+            "TP": tp, "FP": fp, "FN": fn, "TN": tn,
+            "sensitivity": round(safe_div(tp, tp + fn), 4),
+            "specificity": round(safe_div(tn, tn + fp), 4),
+            "PPV": round(safe_div(tp, tp + fp), 4),
+            "F1": round(safe_div(2 * tp, 2 * tp + fp + fn), 4),
+            "prevalence": round(safe_div(tp + fn, n), 4),
             "status": "ok",
         })
 
     mdf = pd.DataFrame(rows)
     out_metrics.parent.mkdir(parents=True, exist_ok=True)
     mdf.to_csv(out_metrics, index=False)
-    print(f"GT metrics  -> {out_metrics}")
+    print(f"Abnormality metrics -> {out_metrics}")
 
     ok = mdf[mdf["status"] == "ok"].sort_values("F1", ascending=False)
     if len(ok):
-        print("\n=== GT metrics (sorted by F1) ===")
-        print(ok[["disease", "GT_pos", "TP", "FP", "FN",
-                  "sensitivity", "specificity", "PPV", "F1"]].to_string(index=False))
-    no_gt = mdf[mdf["status"] != "ok"]["disease"].tolist()
-    if no_gt:
-        print(f"\nNo GT column for: {', '.join(no_gt)}")
+        print("\n=== Abnormality metrics (your GT labels, sorted by F1) ===")
+        print(ok[["abnormality", "rule_predictions", "GT_pos", "TP", "FP", "FN",
+                  "sensitivity", "PPV", "F1"]].to_string(index=False))
+    bad = mdf[mdf["status"] != "ok"]
+    if len(bad):
+        print("\nSkipped:", bad[["abnormality", "status"]].to_string(index=False))
+    if unmapped_gt:
+        print(f"\nGT columns not in map ({len(unmapped_gt)}): add to ABNORMALITY_TO_PRED if needed")
 
 
 def _f(val) -> float | None:
@@ -298,17 +588,21 @@ def load_diseases(disease_filter: set[str] | None = None) -> dict:
     return diseases
 
 
-def pivot_lead_csv(df: pd.DataFrame, keys: list[str], amp_scale: float) -> pd.DataFrame:
+def pivot_lead_csv(
+    df: pd.DataFrame, keys: list[str], amp_scale: float, *, min_leads: int = 1
+) -> pd.DataFrame:
     """Long per-lead table → wide (one row per ECG) with engine column names."""
     df = df.copy()
     df["_lead"] = df["LEAD_NAME"].map(normalize_lead)
     df = df[df["_lead"].notna()]
 
     wide_rows: dict[tuple, dict] = {}
+    lead_counts: dict[tuple, set[str]] = {}
     for _, r in df.iterrows():
         key = tuple(r.get(k) for k in keys)
         lead = r["_lead"]
         bucket = wide_rows.setdefault(key, {k: r.get(k) for k in keys})
+        lead_counts.setdefault(key, set()).add(lead)
 
         for prefix, (col, transform) in LEAD_AMP_MAP.items():
             v = _f(r.get(col))
@@ -329,30 +623,66 @@ def pivot_lead_csv(df: pd.DataFrame, keys: list[str], amp_scale: float) -> pd.Da
         if qrs_lead > 0:
             bucket[f"QRS_{lead}_ms"] = qrs_lead
 
-    return pd.DataFrame(list(wide_rows.values()))
+    rows = []
+    for key, bucket in wide_rows.items():
+        if len(lead_counts.get(key, set())) >= min_leads:
+            rows.append(bucket)
+    return pd.DataFrame(rows)
 
 
-def merge_csvs(lead: pd.DataFrame, glob: pd.DataFrame,
-               interval: pd.DataFrame | None, keys: list[str],
-               amp_scale: float) -> pd.DataFrame:
-    lead_wide = pivot_lead_csv(lead, keys, amp_scale)
-    print(f"  per-lead pivoted: {len(lead_wide)} ECGs, {lead_wide.shape[1]} cols")
+def features_complete(feats: dict[str, float]) -> tuple[bool, list[str]]:
+    missing = sorted(REQUIRED_FEATURE_IDS - feats.keys())
+    return (len(missing) == 0, missing)
 
-    # Coerce key dtypes to string for a stable join.
+
+def filter_complete_rows(merged: pd.DataFrame, amp_scale: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Keep only rows with all 122 mapped measurement features."""
+    keep_idx: list = []
+    audit: list[dict] = []
+    for idx, row in merged.iterrows():
+        feats = row_to_features(row, amp_scale)
+        ok, missing = features_complete(feats)
+        audit.append({
+            "row_index": idx,
+            "n_features": len(feats),
+            "complete": ok,
+            "n_missing": len(missing),
+            "missing_sample": "; ".join(missing[:8]) + ("..." if len(missing) > 8 else ""),
+        })
+        if ok:
+            keep_idx.append(idx)
+    audit_df = pd.DataFrame(audit)
+    return merged.loc[keep_idx].copy(), audit_df
+
+
+def merge_csvs(
+    lead: pd.DataFrame,
+    glob: pd.DataFrame,
+    interval: pd.DataFrame | None,
+    keys: list[str],
+    amp_scale: float,
+    *,
+    complete_only: bool = False,
+) -> pd.DataFrame:
+    min_leads = 12 if complete_only else 1
+    lead_wide = pivot_lead_csv(lead, keys, amp_scale, min_leads=min_leads)
+    print(f"  per-lead pivoted (≥{min_leads} leads): {len(lead_wide)} ECGs, "
+          f"{lead_wide.shape[1]} cols")
+
     def _prep(d: pd.DataFrame) -> pd.DataFrame:
         d = d.copy()
         for k in keys:
             d[k] = d[k].astype(str)
         return d
 
+    join = "inner" if complete_only else "outer"
     merged = _prep(glob)
     if interval is not None:
         ivl = _prep(interval)
-        # only bring columns not already present (avoid suffix collisions)
         extra = [c for c in ivl.columns if c not in merged.columns or c in keys]
-        merged = merged.merge(ivl[extra], on=keys, how="outer", suffixes=("", "_ivl"))
-    merged = merged.merge(_prep(lead_wide), on=keys, how="outer", suffixes=("", "_lead"))
-    print(f"  merged: {len(merged)} ECGs, {merged.shape[1]} cols")
+        merged = merged.merge(ivl[extra], on=keys, how=join, suffixes=("", "_ivl"))
+    merged = merged.merge(_prep(lead_wide), on=keys, how=join, suffixes=("", "_lead"))
+    print(f"  merged ({join}): {len(merged)} ECGs, {merged.shape[1]} cols")
     return merged
 
 
@@ -424,20 +754,36 @@ def main() -> None:
     ap.add_argument("--no-derived-flags", action="store_true",
                     help="Disable 2nd pass that derives exclusion flags from rule output")
     ap.add_argument("--diseases", type=str, default=None,
-                    help="Comma-separated subset of diseases")
+                    help="Comma-separated subset of diseases (default: cohort 44 only)")
+    ap.add_argument("--all-diseases", action="store_true",
+                    help="Evaluate all 56 YAML diseases (not recommended)")
+    ap.add_argument("--apply-suppression", action="store_true",
+                    help="Post-process with suppression_rules.yaml (helps ST/T/shared labels)")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out-preds", type=Path, default=ROOT / "reports" / "nfer_predictions.csv")
     ap.add_argument("--out-merged", type=Path, default=None,
                     help="Optional: write the merged wide table for inspection")
     ap.add_argument("--out-traces", type=Path, default=None)
     ap.add_argument("--gt-csv", type=Path, default=None,
-                    help="4th file: wide one-hot ground-truth table")
+                    help="4th file: wide one-hot GT (.csv, .tsv, or .parquet)")
     ap.add_argument("--gt-keys", type=str, default="NFER_PID,NFER_DTM",
                     help="GT key columns (aligned positionally to --keys)")
     ap.add_argument("--gt-map", type=Path, default=None,
                     help="Optional JSON overriding the disease->GT-column(s) map")
     ap.add_argument("--out-metrics", type=Path,
-                    default=ROOT / "reports" / "nfer_gt_metrics.csv")
+                    default=ROOT / "reports" / "nfer_abnormality_metrics.csv")
+    ap.add_argument(
+        "--complete-only",
+        action="store_true",
+        help="Only ECGs with all 122 measurement features and 12 leads "
+             "(inner-join tables, then drop any row still missing a feature)",
+    )
+    ap.add_argument(
+        "--out-complete-audit",
+        type=Path,
+        default=None,
+        help="With --complete-only: CSV listing n_features / missing per row",
+    )
     args = ap.parse_args()
 
     keys = [k.strip() for k in args.keys.split(",")]
@@ -472,24 +818,52 @@ def main() -> None:
     print(f"interval-csv : {ivl_path}")
     print(f"merge keys   : {keys}")
     print(f"amp-scale    : {args.amp_scale}")
+    if args.complete_only:
+        print("complete-only: ON (12 leads + all 122 measurement features)")
 
     lead_df = pd.read_csv(lead_path)
     glob_df = pd.read_csv(glob_path)
     ivl_df = pd.read_csv(ivl_path) if ivl_path else None
 
-    merged = merge_csvs(lead_df, glob_df, ivl_df, keys, args.amp_scale)
+    merged = merge_csvs(
+        lead_df, glob_df, ivl_df, keys, args.amp_scale,
+        complete_only=args.complete_only,
+    )
+    if args.complete_only:
+        n_before = len(merged)
+        merged, audit_df = filter_complete_rows(merged, args.amp_scale)
+        n_complete = len(merged)
+        print(f"  complete cohort: {n_complete} / {n_before} ECGs "
+              f"({100 * n_complete / n_before:.1f}%)" if n_before else
+              f"  complete cohort: {n_complete} ECGs")
+        if args.out_complete_audit:
+            args.out_complete_audit.parent.mkdir(parents=True, exist_ok=True)
+            audit_df.to_csv(args.out_complete_audit, index=False)
+            print(f"  completeness audit -> {args.out_complete_audit}")
+        if n_complete == 0:
+            sys.exit("No ECGs with all 122 features. Relax filters or check data.")
     if args.limit:
         merged = merged.head(args.limit)
     if args.out_merged:
         merged.to_csv(args.out_merged, index=False)
         print(f"  wrote merged table -> {args.out_merged}")
 
-    disease_filter = set(args.diseases.split(",")) if args.diseases else None
+    abnormality_map = ABNORMALITY_TO_PRED
+    if args.diseases:
+        disease_filter = set(args.diseases.split(","))
+    elif args.all_diseases:
+        disease_filter = None
+    else:
+        disease_filter = diseases_for_cohort(abnormality_map)
     diseases = load_diseases(disease_filter)
-    print(f"Loaded {len(diseases)} rules, "
+    n_need = len(disease_filter) if disease_filter else "all"
+    print(f"Loaded {len(diseases)} rule files (target diseases: {n_need}), "
           f"{sum(len(d.variants) for d in diseases.values())} variants")
 
     disease_names = sorted(diseases.keys())
+    abnormality_names = list(abnormality_map.keys())
+    print(f"Output: {len(abnormality_names)} parquet abnormality columns"
+          + (" + _supp after suppression" if args.apply_suppression else ""))
     pred_rows: list[dict] = []
     trace_rows: list[dict] = []
     skipped = 0
@@ -498,7 +872,12 @@ def main() -> None:
     for idx, row in tqdm(merged.iterrows(), total=len(merged), unit="ecg"):
         feats = row_to_features(row, args.amp_scale)
         mapped_counts.append(len(feats))
-        if "QRS_ms" not in feats:
+        if args.complete_only:
+            ok, _ = features_complete(feats)
+            if not ok:
+                skipped += 1
+                continue
+        elif "QRS_ms" not in feats:
             skipped += 1
             pred_rows.append({**{k: row.get(k) for k in keys},
                               **{dn: -1 for dn in disease_names}})
@@ -520,31 +899,46 @@ def main() -> None:
                 ctx2 = EvalContext(features={**feats, **flags}, sex=None, age_years=age)
                 results = {dn: evaluate_disease(diseases[dn], ctx2) for dn in disease_names}
 
-        pred_rows.append({**{k: row.get(k) for k in keys},
-                          **{dn: int(results[dn].fired) for dn in disease_names}})
+        row_out = {**{k: row.get(k) for k in keys}}
+        abn = abnormality_preds_from_results(results, abnormality_map)
+        row_out.update(abn)
+        if args.apply_suppression:
+            abn_supp = apply_suppression_to_abnormalities(abn, feats)
+            for ab, v in abn_supp.items():
+                row_out[f"{ab}_supp"] = v
+        pred_rows.append(row_out)
         if args.out_traces:
             trace_rows.append({
                 **{k: row.get(k) for k in keys},
                 "results": {dn: results[dn].to_dict() for dn in disease_names},
             })
 
-    print(f"\nProcessed {len(merged)} ECGs ({skipped} skipped: no QRS_ms)")
+    skip_msg = "incomplete features" if args.complete_only else "no QRS_ms"
+    print(f"\nEvaluated {len(pred_rows)} ECGs ({skipped} skipped: {skip_msg})")
     if mapped_counts:
         import statistics
         print(f"Features mapped per ECG: median={int(statistics.median(mapped_counts))}, "
-              f"max={max(mapped_counts)} (of 122 measurements)")
+              f"max={max(mapped_counts)} (required: 122)")
 
     pred_df = pd.DataFrame(pred_rows)
-    print("\n=== Fire-rate summary ===")
-    for dn in disease_names:
-        valid = pred_df[pred_df[dn] >= 0][dn]
-        fires, total = int(valid.sum()), len(valid)
-        rate = fires / total if total else 0
-        print(f"  {dn:32s} {fires:>6d} / {total:<6d} ({rate:6.2%})")
+    gt_keys_list = [k.strip() for k in args.gt_keys.split(",")] if args.gt_csv else None
+    print_abnormality_fire_summary(
+        pred_df, abnormality_map,
+        gt_path=args.gt_csv, pred_keys=keys, gt_keys=gt_keys_list,
+    )
+    if args.apply_suppression:
+        print_abnormality_fire_summary(
+            pred_df, abnormality_map,
+            gt_path=args.gt_csv, pred_keys=keys, gt_keys=gt_keys_list,
+            use_supp_suffix="_supp",
+        )
 
+    out_cols = list(keys) + abnormality_names
+    if args.apply_suppression:
+        out_cols += [f"{a}_supp" for a in abnormality_names]
     args.out_preds.parent.mkdir(parents=True, exist_ok=True)
-    pred_df.to_csv(args.out_preds, index=False)
-    print(f"\nPredictions -> {args.out_preds}")
+    pred_df[out_cols].to_csv(args.out_preds, index=False)
+    print(f"\nPredictions -> {args.out_preds}  ({len(abnormality_names)} labels)")
 
     if args.out_traces and trace_rows:
         args.out_traces.parent.mkdir(parents=True, exist_ok=True)
@@ -554,13 +948,21 @@ def main() -> None:
 
     # ── Ground-truth comparison (4th file) ─────────────────────────────────
     if args.gt_csv:
-        disease_map = DISEASE_TO_GT
         if args.gt_map:
             with open(args.gt_map) as fh:
-                disease_map = json.load(fh)
+                abnormality_map = json.load(fh)
         gt_keys = [k.strip() for k in args.gt_keys.split(",")]
-        compute_gt_metrics(pred_df, args.gt_csv, keys, gt_keys,
-                           disease_map, args.out_metrics)
+        metrics_df = pred_df
+        if args.apply_suppression:
+            supp_cols = {a: f"{a}_supp" for a in abnormality_names if f"{a}_supp" in pred_df.columns}
+            tmp = pred_df.copy()
+            for ab, sc in supp_cols.items():
+                tmp[ab] = tmp[sc]
+            metrics_df = tmp
+            print("\nMetrics use suppression-adjusted labels (_supp columns).")
+        compute_abnormality_metrics(
+            metrics_df, args.gt_csv, keys, gt_keys, abnormality_map, args.out_metrics
+        )
 
 
 if __name__ == "__main__":
