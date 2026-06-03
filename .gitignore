@@ -31,6 +31,12 @@ data/
 !examples/*.csv
 !reports/*.csv
 
+# ...except large PTB-XL run artifacts (regenerated locally, not needed on server)
+reports/ptbxl_*
+
+# Local runtime artifacts
+logs/
+
 # PDF (proprietary manual)
 *.pdf
 
