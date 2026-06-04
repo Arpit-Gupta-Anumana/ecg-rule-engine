@@ -55,11 +55,16 @@ from run_nfer_csvs import (
 )
 
 # Features the engine derives or auto-fills (NOT required from the CSV).
+#   age_years              : injected by EvalContext from PERSON_AGE
+#   sex_M_flag/sex_F_flag  : injected by EvalContext from sex
+#   PP_ms / RR_ms          : derived from atrial_rate_bpm / ventricular_rate_bpm
+#   *_flag                 : 2nd-pass derived from rule output, never from CSV
 DERIVED_OR_OPTIONAL: set[str] = {
     *DISEASE_TO_FLAG.values(),
     *VARIANT_TO_FLAG.values(),
     "sex_M_flag", "sex_F_flag",
-    "PP_ms",
+    "age_years",
+    "PP_ms", "RR_ms",
 }
 
 RULES_DIR = ROOT / "rules"
