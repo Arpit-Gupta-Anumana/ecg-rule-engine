@@ -64,6 +64,11 @@ DERIVED_OR_OPTIONAL: set[str] = {
 
 RULES_DIR = ROOT / "rules"
 
+# Measurement columns that the suppression engine consumes; these get baked
+# into the per-ECG predictions CSV so it can be replayed via --predictions-in.
+MEAS_COLS = ["heart_rate", "pr_interval", "qrs_duration", "axis",
+             "qt_interval", "qtc"]
+
 
 # ── clause walking ─────────────────────────────────────────────────────────
 
@@ -237,7 +242,11 @@ def apply_suppression_per_row(
     from suppression.engine import apply_suppression
     from scripts.apply_suppression import ALL_LABELS
 
-    joined = pred_df.merge(meas_df, on=keys, how="left")
+    meas_cols_in_pred = all(c in pred_df.columns for c in MEAS_COLS)
+    if meas_cols_in_pred:
+        joined = pred_df
+    else:
+        joined = pred_df.merge(meas_df, on=keys, how="left")
     out_rows = []
     for _, row in tqdm(joined.iterrows(), total=len(joined),
                         desc="Suppression", unit="ecg"):
@@ -277,13 +286,19 @@ def apply_suppression_per_row(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--lead-csv", type=Path, required=True)
-    ap.add_argument("--global-csv", type=Path, required=True)
+    ap.add_argument("--lead-csv", type=Path, default=None,
+                    help="Required unless --predictions-in is set.")
+    ap.add_argument("--global-csv", type=Path, default=None,
+                    help="Required unless --predictions-in is set.")
     ap.add_argument("--interval-csv", type=Path, default=None)
     ap.add_argument("--keys", type=str, default="PERSON_ID,EVENT_DTM")
     ap.add_argument("--gt-csv", type=Path, required=True)
     ap.add_argument("--gt-keys", type=str, default="NFER_PID,NFER_DTM")
     ap.add_argument("--amp-scale", type=float, default=1.0)
+    ap.add_argument("--predictions-in", type=Path, default=None,
+                    help="Skip rule evaluation. Load an existing per-ECG "
+                         "predictions CSV (keys + 44 abnormality columns + "
+                         "measurements) and only run suppression / scoring.")
     ap.add_argument("--out", type=Path,
                     default=ROOT / "reports" / "nfer_per_rule_metrics.csv")
     ap.add_argument("--out-abn-metrics", type=Path,
@@ -295,25 +310,14 @@ def main() -> None:
                          "also write post-suppression metrics + columns.")
     args = ap.parse_args()
 
+    if args.predictions_in is None and (args.lead_csv is None
+                                        or args.global_csv is None):
+        ap.error("--lead-csv and --global-csv are required unless "
+                 "--predictions-in is given.")
+
     pred_keys = [k.strip() for k in args.keys.split(",")]
     gt_keys = [k.strip() for k in args.gt_keys.split(",")]
-
-    print("Loading rules...")
-    diseases: dict = {}
-    for yf in sorted(RULES_DIR.glob("*.yaml")):
-        try:
-            d = load_disease_yaml(yf)
-            diseases[d.disease] = d
-        except Exception as e:
-            print(f"  WARN: {yf.name}: {e}")
-
-    print("Loading CSVs...")
-    lead_df = pd.read_csv(args.lead_csv)
-    glob_df = pd.read_csv(args.global_csv)
-    ivl_df = pd.read_csv(args.interval_csv) if args.interval_csv else None
-    merged = merge_csvs(lead_df, glob_df, ivl_df, pred_keys, args.amp_scale,
-                        complete_only=False)
-    print(f"Merged cohort: {len(merged)} ECGs")
+    abn_labels = list(ABNORMALITY_TO_PRED.keys())
 
     print("Loading GT parquet...")
     gt = load_gt_table(args.gt_csv)
@@ -321,57 +325,123 @@ def main() -> None:
     gt = gt.rename(columns={gk: pk for gk, pk in zip(gt_keys, pred_keys)})
     for k in pred_keys:
         gt[k] = gt[k].astype(str)
-        merged[k] = merged[k].astype(str)
 
-    # ── per-rule eval ─────────────────────────────────────────────────
-    results: list[dict] = []
-    per_spec_preds: dict[str, pd.DataFrame] = {}
-    pairs = [(ab, spec) for ab, specs in ABNORMALITY_TO_PRED.items() for spec in specs]
-    print(f"Evaluating {len(pairs)} (abnormality, rule) pairs...")
-    for abnormality, spec in tqdm(pairs, unit="rule"):
-        if spec not in per_spec_preds:
-            preds, required, skipped = evaluate_one_rule(
-                spec, diseases, merged, args.amp_scale, pred_keys
-            )
-            per_spec_preds[spec] = preds
-            # cache required/skipped on the frame for scoring
-            preds.attrs["required"] = required
-            preds.attrs["skipped"] = skipped
-        preds = per_spec_preds[spec]
-        results.append(score_pair(
-            abnormality, spec, preds, gt, pred_keys, col_lookup,
-            preds.attrs.get("required", set()),
-            preds.attrs.get("skipped", 0),
-        ))
+    # ── Mode A: load existing predictions and skip rule eval ──────────
+    if args.predictions_in is not None:
+        print(f"Loading predictions from {args.predictions_in}...")
+        pred_df = pd.read_csv(args.predictions_in)
+        for k in pred_keys:
+            if k not in pred_df.columns:
+                raise SystemExit(f"--predictions-in is missing key column {k!r}")
+            pred_df[k] = pred_df[k].astype(str)
+        missing_meas = [c for c in MEAS_COLS if c not in pred_df.columns]
+        if args.apply_suppression and missing_meas:
+            if args.lead_csv is None or args.global_csv is None:
+                raise SystemExit(
+                    "--predictions-in is missing measurement columns "
+                    f"{missing_meas} required for suppression. Pass "
+                    "--lead-csv / --global-csv (and --interval-csv if you "
+                    "have it) so they can be rebuilt from the source CSVs, "
+                    "or regenerate the predictions file with this version "
+                    "of eval_per_rule.py (it now embeds measurements)."
+                )
+            print("Predictions CSV lacks measurements; rebuilding from CSVs...")
+            lead_df = pd.read_csv(args.lead_csv)
+            glob_df = pd.read_csv(args.global_csv)
+            ivl_df = pd.read_csv(args.interval_csv) if args.interval_csv else None
+            mtmp = merge_csvs(lead_df, glob_df, ivl_df, pred_keys,
+                              args.amp_scale, complete_only=False)
+            for k in pred_keys:
+                mtmp[k] = mtmp[k].astype(str)
+            meas_df = build_measurements_table(mtmp, args.amp_scale, pred_keys)
+            pred_df = pred_df.merge(meas_df, on=pred_keys, how="left")
+        # If the CSV had *__supp columns from a previous run, drop them so we
+        # don't clash with the new ones.
+        drop_supp = [c for c in pred_df.columns if c.endswith("__supp")
+                     or c.endswith("__supp_x") or c.endswith("__supp_y")]
+        if drop_supp:
+            pred_df = pred_df.drop(columns=drop_supp)
+        print(f"Loaded predictions for {len(pred_df)} ECGs.")
+        # We still need a metrics file slot for the per-rule CSV — write a
+        # one-row note so downstream tools don't choke on a missing file.
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([{"status": "skipped (--predictions-in)"}]).to_csv(
+            args.out, index=False)
+        merged = None  # not needed downstream
+    else:
+        # ── Mode B: full pipeline ─────────────────────────────────────
+        print("Loading rules...")
+        diseases: dict = {}
+        for yf in sorted(RULES_DIR.glob("*.yaml")):
+            try:
+                d = load_disease_yaml(yf)
+                diseases[d.disease] = d
+            except Exception as e:
+                print(f"  WARN: {yf.name}: {e}")
 
-    df = pd.DataFrame(results)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(args.out, index=False)
-    print(f"\nWrote per-rule metrics ({len(df)} rows) -> {args.out}")
+        print("Loading CSVs...")
+        lead_df = pd.read_csv(args.lead_csv)
+        glob_df = pd.read_csv(args.global_csv)
+        ivl_df = pd.read_csv(args.interval_csv) if args.interval_csv else None
+        merged = merge_csvs(lead_df, glob_df, ivl_df, pred_keys, args.amp_scale,
+                            complete_only=False)
+        print(f"Merged cohort: {len(merged)} ECGs")
+        for k in pred_keys:
+            merged[k] = merged[k].astype(str)
 
-    # ── aggregate to per-abnormality wide predictions ─────────────────
-    print("Aggregating per-spec → per-abnormality...")
-    abn_pred: dict[tuple, dict[str, int]] = defaultdict(dict)
-    all_keys_seen: set[tuple] = set()
-    for abn, specs in ABNORMALITY_TO_PRED.items():
-        for spec in specs:
-            preds = per_spec_preds.get(spec)
-            if preds is None or preds.empty:
-                continue
-            for _, row in preds.iterrows():
-                k = tuple(str(row[c]) for c in pred_keys)
-                all_keys_seen.add(k)
-                prev = abn_pred[k].get(abn, 0)
-                abn_pred[k][abn] = max(prev, int(row["pred"]))
+        # ── per-rule eval ─────────────────────────────────────────────
+        results: list[dict] = []
+        per_spec_preds: dict[str, pd.DataFrame] = {}
+        pairs = [(ab, spec) for ab, specs in ABNORMALITY_TO_PRED.items()
+                 for spec in specs]
+        print(f"Evaluating {len(pairs)} (abnormality, rule) pairs...")
+        for abnormality, spec in tqdm(pairs, unit="rule"):
+            if spec not in per_spec_preds:
+                preds, required, skipped = evaluate_one_rule(
+                    spec, diseases, merged, args.amp_scale, pred_keys
+                )
+                per_spec_preds[spec] = preds
+                preds.attrs["required"] = required
+                preds.attrs["skipped"] = skipped
+            preds = per_spec_preds[spec]
+            results.append(score_pair(
+                abnormality, spec, preds, gt, pred_keys, col_lookup,
+                preds.attrs.get("required", set()),
+                preds.attrs.get("skipped", 0),
+            ))
 
-    abn_labels = list(ABNORMALITY_TO_PRED.keys())
-    pred_rows = []
-    for k in sorted(all_keys_seen):
-        row = dict(zip(pred_keys, k))
-        for abn in abn_labels:
-            row[abn] = int(abn_pred[k].get(abn, 0))
-        pred_rows.append(row)
-    pred_df = pd.DataFrame(pred_rows)
+        df = pd.DataFrame(results)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(args.out, index=False)
+        print(f"\nWrote per-rule metrics ({len(df)} rows) -> {args.out}")
+
+        # ── aggregate to per-abnormality wide predictions ─────────────
+        print("Aggregating per-spec → per-abnormality...")
+        abn_pred: dict[tuple, dict[str, int]] = defaultdict(dict)
+        all_keys_seen: set[tuple] = set()
+        for abn, specs in ABNORMALITY_TO_PRED.items():
+            for spec in specs:
+                preds = per_spec_preds.get(spec)
+                if preds is None or preds.empty:
+                    continue
+                for _, row in preds.iterrows():
+                    k = tuple(str(row[c]) for c in pred_keys)
+                    all_keys_seen.add(k)
+                    prev = abn_pred[k].get(abn, 0)
+                    abn_pred[k][abn] = max(prev, int(row["pred"]))
+
+        pred_rows = []
+        for k in sorted(all_keys_seen):
+            row = dict(zip(pred_keys, k))
+            for abn in abn_labels:
+                row[abn] = int(abn_pred[k].get(abn, 0))
+            pred_rows.append(row)
+        pred_df = pd.DataFrame(pred_rows)
+
+        # Bake measurements into the predictions table so a future
+        # --predictions-in run can apply suppression without the CSVs.
+        meas_df = build_measurements_table(merged, args.amp_scale, pred_keys)
+        pred_df = pred_df.merge(meas_df, on=pred_keys, how="left")
 
     # ── per-abnormality metrics (pre-suppression) ─────────────────────
     abn_metrics: list[dict] = []
@@ -389,8 +459,11 @@ def main() -> None:
     # ── optional suppression pass ─────────────────────────────────────
     post_df = None
     if args.apply_suppression:
-        print("Building per-ECG measurements for suppression...")
-        meas_df = build_measurements_table(merged, args.amp_scale, pred_keys)
+        if all(c in pred_df.columns for c in MEAS_COLS):
+            meas_df = pred_df[pred_keys + MEAS_COLS].copy()
+        else:
+            print("Building per-ECG measurements for suppression...")
+            meas_df = build_measurements_table(merged, args.amp_scale, pred_keys)
         post_df = apply_suppression_per_row(
             pred_df, meas_df, ABNORMALITY_TO_SUPPRESSION, abn_labels, pred_keys
         )
